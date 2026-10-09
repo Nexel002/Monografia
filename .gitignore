@@ -5,3 +5,12 @@ node_modules/
 .env
 .env.*
 ~$*
+
+# Dados pesados e gerados (reproduzíveis a partir de scripts) — não versionar
+dados/videos/*
+dados/mapas/*.osm*
+dados/resultados/*
+!dados/**/.gitkeep
+*.pt
+*.onnx
+*.log
