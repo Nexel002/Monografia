@@ -142,7 +142,7 @@ Código, identificadores e mensagens em português.
 | 10/10/2026 | Controlo em duas camadas (secção 2.1) |
 | 10/10/2026 | Sem planilha de campo por agora: procura e tempos semafóricos assumidos, em ficheiro de configuração, substituíveis |
 | 10/10/2026 | Vídeo: público (não há gravação própria) |
-| 10/10/2026 | LLM só no dashboard, só leitura; nunca decide sobre semáforos |
+| 10/10/2026 | LLM só no dashboard, só leitura; nunca decide sobre semáforos. Fornecedor: **Gemini** (texto e voz em tempo real); variáveis em `backend/.env`, modelo em `.env.example` |
 
 **Assunções por validar:** que C4 e C5 se ligam por um corredor de cruzamentos reais (verificar no mapa);
 que o YOLO nano em CPU atinge taxa suficiente para a demo.
@@ -165,7 +165,7 @@ que o YOLO nano em CPU atinge taxa suficiente para a demo.
 
 ## 7. Pendências do utilizador
 
-- [ ] Planilha Excel da observação directa (volumes, tipos, tempos de verde/amarelo/vermelho)
-- [ ] Escolher o modelo do assistente (Claude, Gemini ou GPT) e fornecer a chave **fora do chat** (`.env`)
+- [ ] ~~Planilha Excel da observação directa~~ — não disponível; trabalha-se sem ela (valores assumidos). Trazê-la antes da defesa se possível
+- [x] Modelo do assistente: Gemini; chave e modelos em `backend/.env` (fora do Git)
 - [ ] Corrigir na monografia: nome do C3 (3.3.1 vs Tabela 1), secções por numerar/ordenar, notas internas
       e referências duplicadas, e descrever em 3.7.5 as duas camadas de controlo
