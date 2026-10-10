@@ -16,7 +16,7 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 - [x] Monografia convertida para Markdown (`docs/monografia/monografia.md`)
 - [x] SUMO 1.28.0 + TraCI + sumolib instalados (`backend/.venv`, gerido por `uv`, Python 3.12)
 - [x] Estrutura de pastas criada (secção 3)
-- [ ] Escolher e importar a rede de Maputo (OSM → `netconvert`): corredor ligado que inclua C4 e C5
+- [x] Rede importada: corredor da **Av. 24 de Julho** (12 semáforos reais do OSM, incl. C4 Tanzânia) + Av. Eduardo Mondlane paralela como via alternativa. Reproduzível: `uv run python -m gestao_trafego.simulacao.construir_rede` (rede em `dados/cenarios/corredor_24_de_julho.net.xml`)
 - [ ] Gerar procura de hora de ponta (`routes.rou.xml`) — valores assumidos, em ficheiro de configuração
 - [ ] Correr a rede com semáforos de **tempo fixo** (cenário de referência) e gravar métricas
 - [ ] Teste: a simulação arranca, termina e produz KPIs repetíveis (mesma semente → mesmo resultado)
