@@ -14,3 +14,4 @@ dados/resultados/*
 *.pt
 *.onnx
 *.log
+!.env.example
