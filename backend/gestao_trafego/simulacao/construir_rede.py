@@ -11,6 +11,7 @@ devolveu 406/500/504 nas tentativas de 10/10/2026. Os ficheiros .osm ficam em da
 import subprocess
 import urllib.request
 from pathlib import Path
+from xml.etree import ElementTree as ET
 
 import sumo
 
@@ -33,6 +34,14 @@ QUADRANTES = {
 # Recorte final: Av. 24 de Julho entre a Tanzânia (C4) e a Vladimir Lenine, mais a Eduardo Mondlane
 # paralela, que serve de via alternativa. Em lon/lat: oeste,sul,este,norte.
 RECORTE_GEO = "32.558,-25.972,32.582,-25.955"
+
+# Semáforos que existem na realidade mas que o OSM não marca. C5 (Av. Eduardo Mondlane × Av. Albert
+# Luthuli) tem semáforo em Maputo (confirmado no terreno) e no OSM é um cruzamento de prioridade.
+# O identificador é o do aglomerado que o netconvert cria ao juntar os nós do cruzamento; vem dos
+# IDs OSM e só muda se o OSM for editado ali — por isso `converter` falha alto se deixar de existir.
+SEMAFOROS_FORCADOS = {
+    "C5": "cluster_1681862225_1681862227_269167085_269167086_#1more",
+}
 
 
 def descarregar_quadrantes() -> list[Path]:
@@ -72,12 +81,25 @@ def converter(ficheiros_osm: list[Path]) -> None:
             "--tls.guess-signals",
             "--tls.discard-simple",
             "--tls.join",
+            "--tls.set", ",".join(SEMAFOROS_FORCADOS.values()),
             # Sem isto as arestas perdem o nome e não se consegue localizar C4/C5 por avenida.
             "--output.street-names",
             "--no-warnings",
         ],
         check=True,
     )
+    _confirmar_semaforos_forcados()
+
+
+def _confirmar_semaforos_forcados() -> None:
+    raiz = ET.parse(REDE_SAIDA).getroot()
+    tipos = {j.get("id"): j.get("type") for j in raiz.iter("junction")}
+    for nome, id_no in SEMAFOROS_FORCADOS.items():
+        if tipos.get(id_no) != "traffic_light":
+            raise RuntimeError(
+                f"{nome} deixou de ser semáforo: o nó {id_no} não existe ou não é traffic_light. "
+                "O OSM mudou nesse cruzamento; procurar o novo id do aglomerado na rede gerada."
+            )
 
 
 if __name__ == "__main__":
