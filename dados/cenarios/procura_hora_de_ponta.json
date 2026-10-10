@@ -1,0 +1,23 @@
+{
+  "descricao": "Hora de ponta no corredor da Av. 24 de Julho. Calibrado para congestionar sem bloquear a rede (com o dobro dos fluxos o tempo fixo entra em bloqueio total: 180 teleportes). VALORES ASSUMIDOS: ainda não há dados de campo (planilha de Agosto/2026). Substituir por contagens observadas quando existirem.",
+  "origem_dos_valores": "assumidos",
+  "duracao_s": 3600,
+  "fluxos": [
+    {"id": "24j_oeste_este",   "de": "724371775#0",   "para": "308201857#2",   "veiculos_por_hora": 450, "descricao": "24 de Julho, sentido Tanzânia -> Av. Vladimir Lenine/Amílcar Cabral (eixo principal)"},
+    {"id": "24j_este_oeste",   "de": "724479642#1",   "para": "1545889151#2",  "veiculos_por_hora": 350, "descricao": "24 de Julho, sentido contrário"},
+    {"id": "em_norte_sul",     "de": "552827114#0",   "para": "725127420#3",   "veiculos_por_hora": 300, "descricao": "Eduardo Mondlane, paralela à 24 de Julho (via alternativa)"},
+    {"id": "nacoes_unidas",    "de": "166777108",     "para": "308201857#2",   "veiculos_por_hora": 150, "descricao": "Entrada pelo oeste que alimenta o corredor"},
+    {"id": "av_trabalho",      "de": "31737451#0",    "para": "308201857#2",   "veiculos_por_hora": 125, "descricao": "Travessa norte que desagua na 24 de Julho"},
+    {"id": "acordos_lusaka",   "de": "24769187#1",    "para": "1545889151#2",  "veiculos_por_hora": 125, "descricao": "Travessa a norte, sentido oeste"},
+    {"id": "lenine_travessa",  "de": "1536144840#1",  "para": "1545889151#2",  "veiculos_por_hora": 150, "descricao": "Vladimir Lenine a cruzar o corredor"},
+    {"id": "guerra_popular",   "de": "473648156",     "para": "725127420#3",   "veiculos_por_hora": 150, "descricao": "Guerra Popular, a sul, para a Eduardo Mondlane"},
+    {"id": "karl_marx",        "de": "473441730#1",   "para": "725127420#3",   "veiculos_por_hora": 75, "descricao": "Karl Marx, a sul"},
+    {"id": "ho_chi_min",       "de": "167160101#0",   "para": "1545889151#2",  "veiculos_por_hora": 100, "descricao": "Ho Chi Min, a sudeste, sentido oeste"}
+  ],
+  "tipos": [
+    {"id": "carro",   "proporcao": 0.70, "comprimento": 4.5, "vclass": "passenger",  "vel_max": 13.9, "aceleracao": 2.6, "desaceleracao": 4.5, "sigma": 0.5, "cor": "0.2,0.5,1"},
+    {"id": "chapa",   "proporcao": 0.12, "comprimento": 6.5, "vclass": "passenger",  "vel_max": 12.5, "aceleracao": 2.0, "desaceleracao": 4.0, "sigma": 0.6, "cor": "1,0.8,0"},
+    {"id": "mota",    "proporcao": 0.08, "comprimento": 2.2, "vclass": "motorcycle", "vel_max": 13.9, "aceleracao": 3.5, "desaceleracao": 5.0, "sigma": 0.5, "cor": "0.1,0.8,0.3"},
+    {"id": "camiao",  "proporcao": 0.10, "comprimento": 9.0, "vclass": "truck",      "vel_max": 11.1, "aceleracao": 1.3, "desaceleracao": 3.5, "sigma": 0.5, "cor": "0.9,0.3,0.2"}
+  ]
+}
