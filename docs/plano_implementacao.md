@@ -30,7 +30,7 @@ e comparar `dados/resultados/*/resumo.json` com o do cenário `fixo`.
 
 ### Fase 1 — Base da simulação (10/10/2026)
 Repositório, SUMO 1.28.0 + TraCI, estrutura de módulos, rede do corredor da Av. 24 de Julho
-(12 semáforos reais do OSM, incl. C4 Tanzânia; Eduardo Mondlane paralela como via alternativa),
+(12 semáforos reais do OSM + C5 forçado, incl. C4 Tanzânia; Eduardo Mondlane paralela como via alternativa),
 procura de hora de ponta e simulação de **tempo fixo** com KPIs repetíveis.
 
 - Rede: `uv run python -m gestao_trafego.simulacao.construir_rede` → `dados/cenarios/corredor_24_de_julho.net.xml`
@@ -38,14 +38,14 @@ procura de hora de ponta e simulação de **tempo fixo** com KPIs repetíveis.
 - Corrida: `uv run python -m gestao_trafego.simulacao.executar --cenario fixo [--escala X] [--semente N]`
 - Testes: `uv run pytest` (5 testes; os 2 de repetibilidade correm o SUMO, ~20 s)
 
-**Linha de base (tempo fixo, hora de ponta, semente 42):** 2000 veículos concluídos em 4302 s simulados;
-espera média **86,7 s** (desvio 78,8 s); perda de tempo média 126 s; duração média de viagem 329 s;
-fila média 42 veículos parados (máxima 126); velocidade média 7,6 m/s; 0 teleportes, 0 colisões.
+**Linha de base (tempo fixo, hora de ponta, semente 42, 13 semáforos):** 2000 veículos concluídos em 4074 s
+simulados; espera média **87,9 s** (desvio 78,2 s); perda de tempo média 126 s; duração média de viagem
+328 s; fila média 45 veículos parados (máxima 124); velocidade média 8,0 m/s; **5 teleportes**, 0 colisões.
 
 **Desvios ao plano:** o Overpass falhou (406/500/504), pelo que o OSM é descarregado por quadrantes
 da API principal. Com o dobro dos fluxos iniciais (3950 veh/h) o tempo fixo entrava em bloqueio total
 (espera média 574 s, 180 teleportes) — fluxos reduzidos a metade; `--escala 2` fica como cenário de
-stress. C5 (Eduardo Mondlane × Albert Luthuli) não tem semáforo no OSM e não é nó da rede.
+stress. C5 (Eduardo Mondlane × Albert Luthuli) tem semáforo na realidade mas não no OSM: é forçado em `SEMAFOROS_FORCADOS` (`construir_rede.py`), que falha alto se o id do cruzamento mudar. Com ele a linha de base passou de 0 para 5 teleportes (programa de tempo fixo gerado por defeito para esse nó, não medido).
 
 **Limitações:** procura e tempos semafóricos assumidos (sem planilha de campo); os programas de tempo
 fixo são os que o `netconvert` gera, não os medidos em Maputo.
@@ -170,7 +170,7 @@ Código, identificadores e mensagens em português.
 | 10/10/2026 | Vídeo: público (não há gravação própria) |
 | 10/10/2026 | LLM só no dashboard, só leitura; nunca decide sobre semáforos. Texto e voz em tempo real: **Gemini**. Síntese de voz (texto -> áudio), por ordem de preferência: Google TTS, ElevenLabs. Todas as chaves em `backend/.env` (fora do Git); variáveis documentadas em `backend/.env.example` |
 
-**Assunções por validar:** que C4 e C5 se ligam por um corredor de cruzamentos reais (verificar no mapa);
+**Assunções por validar:** C4 e C5 ligam-se pelo corredor (confirmado no mapa: C4 a oeste, C5 junto à Guerra Popular);
 que o YOLO nano em CPU atinge taxa suficiente para a demo.
 
 ---
