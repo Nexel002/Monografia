@@ -12,21 +12,56 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 **Fase 2 — Controlo em duas camadas (dias 3–5)**
 
-- [ ] `EstadoDoNo`, `OrdemDeModo`, `ContagemPorVia` em `comum/`
-- [ ] Ponte TraCI por nó: ler filas/espaço livre nas saídas e aplicar fases (`simulacao/`)
-- [ ] Camada 1: Max-Pressure por cruzamento, com verde mínimo / amarelo / vermelho máximo
-- [ ] Camada 2: coordenador com modos *gating*, *onda verde*, *escoamento alternado*
-- [ ] Vias alternativas via `rerouteTraveltime`
-- [ ] Cenário `inteligente` em `executar.py`; comparação com `fixo` (mesma semente, mesmos veículos)
-- [ ] Cenários: hora de ponta (`--escala 1`), normal (`0.5`), incidente (via cortada)
-- [ ] Testes unitários das regras (pressão, limiares, duração dos modos, regresso ao normal)
+*2a — Camada 1 (feita, a fechar com o merge):*
+- [x] Tipos partilhados em `comum/tipos.py` (`Movimento`, `FaseVerde`, `TopologiaDoNo`, `LeituraDeFaixa`)
+- [x] Ponte TraCI (`simulacao/ponte.py`): descobre as fases verdes, lê as filas por subscrição e aplica estados
+- [x] Camada 1: Max-Pressure por cruzamento, com verde mínimo / máximo, amarelo, vermelho máximo e histerese
+- [x] Cenário `local` em `executar.py`; comparação com `fixo` (3 sementes)
+- [x] Testes unitários do controlador (9) — pressão, verde mínimo, histerese, saída cheia, vermelho máximo
 
-**Como verificar:** `cd backend && uv run python -m gestao_trafego.simulacao.executar --cenario inteligente`
-e comparar `dados/resultados/*/resumo.json` com o do cenário `fixo`.
+*2b — Camada 2 (por fazer):*
+- [ ] `EstadoDoNo` e `OrdemDeModo` em `comum/` e barramento de mensagens entre nós
+- [ ] Coordenador: modos *gating*, *onda verde*, *escoamento alternado* e regresso ao normal
+- [ ] Cenário `coordenado`; deve **eliminar os bloqueios** que o `local` ainda tem (semente 13: 38 teleportes)
+- [ ] Vias alternativas via `rerouteTraveltime`
+- [ ] Cenários: normal (`--escala 0.5`) e incidente (via cortada)
+- [ ] Testes unitários das regras do coordenador
+
+**Como verificar:** `cd backend && uv run python -m gestao_trafego.simulacao.executar --cenario local`
+(ou `coordenado`, quando existir) e comparar `dados/resultados/*/resumo.json` com o do cenário `fixo`.
 
 ---
 
 ## 1.1 Histórico de entregas
+
+### Fase 2a — Controlo local Max-Pressure (10/10/2026)
+Cada um dos 13 semáforos passa a decidir sozinho por Max-Pressure (`controlo/local/max_pressure.py`),
+ligado ao SUMO por `simulacao/ponte.py`. Corrida: `... executar --cenario local [--semente N]`.
+
+**Resultado (hora de ponta, espera média em segundos, tempo fixo → local):**
+
+| Semente | Tempo fixo | Local | Variação | Teleportes (fixo → local) |
+|---|---|---|---|---|
+| 42 | 87,9 | 66,5 | −24 % | 5 → 0 |
+| 7 | 135,4 | 74,2 | −45 % | 29 → 1 |
+| 13 | 103,2 | 145,5 | **+41 %** | 0 → **38** |
+| média | 108,8 | 95,4 | −12 % | |
+
+**Leitura honesta:** o controlo local melhora duas sementes em três, mas na semente 13 a rede entra em
+bloqueio (38 teleportes, 4954 s para esvaziar). Sem coordenação, um nó que enche a saída bloqueia o
+anterior — exactamente o *spillback* que a camada 2 existe para evitar. A média de −12 % não é
+conclusiva com 3 sementes; as comparações finais usarão mais sementes.
+
+**Desvios e achados:**
+- Com `verde_minimo` 10 s o cruzamento trocava de fase a cada ~15 s e perdia ~25 % do tempo em amarelos:
+  pior do que o tempo fixo (espera 647 s e 101 teleportes numa hora completa). Passou a 20 s com
+  histerese 0,2. **Estes valores foram ajustados na semente 42** e validados nas sementes 7 e 13 — o
+  resultado da 13 mostra que o ajuste não generaliza por si só.
+- A fila de entrada mede-se só com veículos parados e com tecto de 20 veículos: em faixas de 1 km a
+  ocupação total escondia filas reais e dava-lhes pressão negativa.
+- 3 dos 13 nós (incluindo C5) não trocam de fase: a procura assumida quase não passa por eles.
+- A pasta de resultados inclui agora o limite no nome (`_limN`) para um ensaio curto não sobrescrever
+  uma corrida completa.
 
 ### Fase 1 — Base da simulação (10/10/2026)
 Repositório, SUMO 1.28.0 + TraCI, estrutura de módulos, rede do corredor da Av. 24 de Julho
