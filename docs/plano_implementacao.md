@@ -10,19 +10,45 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 ## 1. Fase em curso
 
-**Fase 1 — Base da simulação (dias 1–2)**
+**Fase 2 — Controlo em duas camadas (dias 3–5)**
 
-- [x] Repositório criado e ligado à conta Nexel (SSH `github-nexel`)
-- [x] Monografia convertida para Markdown (`docs/monografia/monografia.md`)
-- [x] SUMO 1.28.0 + TraCI + sumolib instalados (`backend/.venv`, gerido por `uv`, Python 3.12)
-- [x] Estrutura de pastas criada (secção 3)
-- [x] Rede importada: corredor da **Av. 24 de Julho** (12 semáforos reais do OSM, incl. C4 Tanzânia) + Av. Eduardo Mondlane paralela como via alternativa. Reproduzível: `uv run python -m gestao_trafego.simulacao.construir_rede` (rede em `dados/cenarios/corredor_24_de_julho.net.xml`)
-- [ ] Gerar procura de hora de ponta (`routes.rou.xml`) — valores assumidos, em ficheiro de configuração
-- [ ] Correr a rede com semáforos de **tempo fixo** (cenário de referência) e gravar métricas
-- [ ] Teste: a simulação arranca, termina e produz KPIs repetíveis (mesma semente → mesmo resultado)
+- [ ] `EstadoDoNo`, `OrdemDeModo`, `ContagemPorVia` em `comum/`
+- [ ] Ponte TraCI por nó: ler filas/espaço livre nas saídas e aplicar fases (`simulacao/`)
+- [ ] Camada 1: Max-Pressure por cruzamento, com verde mínimo / amarelo / vermelho máximo
+- [ ] Camada 2: coordenador com modos *gating*, *onda verde*, *escoamento alternado*
+- [ ] Vias alternativas via `rerouteTraveltime`
+- [ ] Cenário `inteligente` em `executar.py`; comparação com `fixo` (mesma semente, mesmos veículos)
+- [ ] Cenários: hora de ponta (`--escala 1`), normal (`0.5`), incidente (via cortada)
+- [ ] Testes unitários das regras (pressão, limiares, duração dos modos, regresso ao normal)
 
-**Como verificar:** `cd backend && uv run python -m gestao_trafego.simulacao.executar --cenario fixo`
-deve correr sem erros e escrever as métricas em `dados/resultados/`. *(Comando previsto; confirmar quando existir.)*
+**Como verificar:** `cd backend && uv run python -m gestao_trafego.simulacao.executar --cenario inteligente`
+e comparar `dados/resultados/*/resumo.json` com o do cenário `fixo`.
+
+---
+
+## 1.1 Histórico de entregas
+
+### Fase 1 — Base da simulação (10/10/2026)
+Repositório, SUMO 1.28.0 + TraCI, estrutura de módulos, rede do corredor da Av. 24 de Julho
+(12 semáforos reais do OSM, incl. C4 Tanzânia; Eduardo Mondlane paralela como via alternativa),
+procura de hora de ponta e simulação de **tempo fixo** com KPIs repetíveis.
+
+- Rede: `uv run python -m gestao_trafego.simulacao.construir_rede` → `dados/cenarios/corredor_24_de_julho.net.xml`
+- Procura: `dados/cenarios/procura_hora_de_ponta.json` (10 fluxos, 4 tipos de veículo, **valores assumidos**)
+- Corrida: `uv run python -m gestao_trafego.simulacao.executar --cenario fixo [--escala X] [--semente N]`
+- Testes: `uv run pytest` (5 testes; os 2 de repetibilidade correm o SUMO, ~20 s)
+
+**Linha de base (tempo fixo, hora de ponta, semente 42):** 2000 veículos concluídos em 4302 s simulados;
+espera média **86,7 s** (desvio 78,8 s); perda de tempo média 126 s; duração média de viagem 329 s;
+fila média 42 veículos parados (máxima 126); velocidade média 7,6 m/s; 0 teleportes, 0 colisões.
+
+**Desvios ao plano:** o Overpass falhou (406/500/504), pelo que o OSM é descarregado por quadrantes
+da API principal. Com o dobro dos fluxos iniciais (3950 veh/h) o tempo fixo entrava em bloqueio total
+(espera média 574 s, 180 teleportes) — fluxos reduzidos a metade; `--escala 2` fica como cenário de
+stress. C5 (Eduardo Mondlane × Albert Luthuli) não tem semáforo no OSM e não é nó da rede.
+
+**Limitações:** procura e tempos semafóricos assumidos (sem planilha de campo); os programas de tempo
+fixo são os que o `netconvert` gera, não os medidos em Maputo.
 
 ---
 
