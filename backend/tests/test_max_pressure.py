@@ -9,7 +9,7 @@ TOPOLOGIA = TopologiaDoNo(
         FaseVerde(1, "rG", (Movimento("a2", "b2"),)),
     ),
 )
-PARAMETROS = ParametrosLocais(verde_minimo_s=10, verde_maximo_s=60, amarelo_s=4, vermelho_maximo_s=120, histerese=0.1)
+PARAMETROS = ParametrosLocais(verde_minimo_s=10, verde_maximo_s=60, amarelo_s=4, vermelho_maximo_s=120, histerese=0.1, verde_minimo_sem_procura_s=3)
 
 
 def faixa(parados: int = 0, veiculos: int | None = None, capacidade: float = 20) -> LeituraDeFaixa:
@@ -37,14 +37,14 @@ def test_estado_de_amarelo_fecha_o_que_fecha_e_mantem_o_que_continua():
 def test_nao_troca_antes_do_verde_minimo_mesmo_com_pressao_maior_na_outra_fase():
     c = ControladorLocal(TOPOLOGIA, PARAMETROS)
 
-    estado = avancar(c, 1, 9, leitura(a1=0, a2=20))
+    estado = avancar(c, 1, 9, leitura(a1=1, a2=20))
 
     assert estado == "Gr"
 
 
 def test_troca_para_a_fase_de_maior_pressao_passando_por_amarelo():
     c = ControladorLocal(TOPOLOGIA, PARAMETROS)
-    lei = leitura(a1=0, a2=20)
+    lei = leitura(a1=1, a2=20)
 
     assert avancar(c, 1, 10, lei) == "yr"  # verde mínimo cumprido: começa o amarelo
     assert avancar(c, 11, 13, lei) == "yr"  # ainda amarelo
@@ -79,7 +79,7 @@ def test_fase_sem_procura_nao_ganha_verde_forcado_pelo_vermelho_maximo():
 
 
 def test_vermelho_maximo_obriga_a_servir_fase_esquecida_com_procura():
-    c = ControladorLocal(TOPOLOGIA, ParametrosLocais(10, 1000, 4, 120, 0.1))
+    c = ControladorLocal(TOPOLOGIA, ParametrosLocais(verde_minimo_s=10, verde_maximo_s=1000, amarelo_s=4, vermelho_maximo_s=120, histerese=0.1))
     # a1 tem sempre mais fila e ganharia para sempre; a2 tem 1 carro à espera.
     lei = leitura(a1=20, a2=1)
     estado = avancar(c, 1, 119, lei)
@@ -89,7 +89,7 @@ def test_vermelho_maximo_obriga_a_servir_fase_esquecida_com_procura():
 
 
 def test_verde_maximo_passa_a_vez_a_outra_fase_com_procura():
-    c = ControladorLocal(TOPOLOGIA, ParametrosLocais(10, 30, 4, 1000, 0.1))
+    c = ControladorLocal(TOPOLOGIA, ParametrosLocais(verde_minimo_s=10, verde_maximo_s=30, amarelo_s=4, vermelho_maximo_s=1000, histerese=0.1))
     # a1 domina (pressão 1,0 contra 0,05), mas ao fim do verde máximo a2 tem de passar.
     lei = leitura(a1=20, a2=1)
 
@@ -102,3 +102,17 @@ def test_sem_fases_verdes_falha_alto():
 
     with pytest.raises(ValueError):
         ControladorLocal(TopologiaDoNo("vazio", ()))
+
+
+def test_fase_vazia_cede_a_vez_depressa_a_uma_fase_com_fila():
+    c = ControladorLocal(TOPOLOGIA, PARAMETROS)
+
+    # a1 não tem nenhum veículo; a2 tem fila. Não espera os 10 s do verde mínimo normal.
+    assert avancar(c, 1, 2, leitura(a1=0, a2=20)) == "Gr"
+    assert avancar(c, 3, 3, leitura(a1=0, a2=20)) == "yr"
+
+
+def test_fase_vazia_nao_troca_se_ninguem_espera():
+    c = ControladorLocal(TOPOLOGIA, PARAMETROS)
+
+    assert avancar(c, 1, 200, leitura(a1=0, a2=0)) == "Gr"

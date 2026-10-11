@@ -10,29 +10,71 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 ## 1. Fase em curso
 
-**Fase 2 — Controlo em duas camadas (dias 3–5)**
+**Fase 3 — Visão computacional (dias 6–8)**
 
-*2a — Camada 1 (feita, a fechar com o merge):*
-- [x] Tipos partilhados em `comum/tipos.py` (`Movimento`, `FaseVerde`, `TopologiaDoNo`, `LeituraDeFaixa`)
-- [x] Ponte TraCI (`simulacao/ponte.py`): descobre as fases verdes, lê as filas por subscrição e aplica estados
-- [x] Camada 1: Max-Pressure por cruzamento, com verde mínimo / máximo, amarelo, vermelho máximo e histerese
-- [x] Cenário `local` em `executar.py`; comparação com `fixo` (3 sementes)
-- [x] Testes unitários do controlador (9) — pressão, verde mínimo, histerese, saída cheia, vermelho máximo
+- [ ] Escolher um vídeo público de tráfego (câmara fixa, vista de cruzamento) e registar a fonte e a licença
+- [ ] Dependências: `opencv-python` e `ultralytics` (YOLO nano). A descarga do PyTorch é grande: com a
+      rede actual o SUMO demorou 18 min, por isso fazê-la cedo e em segundo plano
+- [ ] Detecção por tipo (carro, camião, mota, autocarro) em CPU; medir fotogramas por segundo
+- [ ] Tracking (IDs estáveis) e linha virtual de contagem por via; estimativa de fila
+- [ ] Vídeo anotado com caixas e contadores (parte visual da defesa)
+- [ ] Saída no formato `ContagemPorVia` (o mesmo que o controlo consome)
+- [ ] Precisão: contagem manual de um trecho do vídeo contra a automática
+- [ ] Testes da lógica de contagem (cruzamento da linha, ID repetido, direcções) sem precisar do YOLO
 
-*2b — Camada 2 (por fazer):*
-- [ ] `EstadoDoNo` e `OrdemDeModo` em `comum/` e barramento de mensagens entre nós
-- [ ] Coordenador: modos *gating*, *onda verde*, *escoamento alternado* e regresso ao normal
-- [ ] Cenário `coordenado`; deve **eliminar os bloqueios** que o `local` ainda tem (semente 13: 38 teleportes)
-- [ ] Vias alternativas via `rerouteTraveltime`
-- [ ] Cenários: normal (`--escala 0.5`) e incidente (via cortada)
-- [ ] Testes unitários das regras do coordenador
-
-**Como verificar:** `cd backend && uv run python -m gestao_trafego.simulacao.executar --cenario local`
-(ou `coordenado`, quando existir) e comparar `dados/resultados/*/resumo.json` com o do cenário `fixo`.
+**Como verificar:** `cd backend && uv run python -m gestao_trafego.visao.contar --video dados/videos/<ficheiro>`
+*(comando previsto; confirmar quando existir)*.
 
 ---
 
 ## 1.1 Histórico de entregas
+
+### Fase 2b — Coordenação, incidente e vias alternativas (11/10/2026)
+Camada 2 (`controlo/coordenador/anti_bloqueio.py`), cenário `coordenado`, incidente que corta a Av. 24
+de Julho (`simulacao/eventos.py`) e recomendação de vias alternativas (`simulacao/rotas_alternativas.py`).
+Comparação em lote: `uv run python scripts/comparar_cenarios.py --incidente` e
+`uv run python scripts/resumir_comparacao.py <tabelas>`. Testes: 26 (`uv run pytest`).
+
+**O que a camada 2 faz:** vigia a ocupação das faixas; quando uma faixa de saída enche (≥ 60 %, com
+histerese até 35 %) manda ao cruzamento que a alimenta *não lhe mandar mais carros* (fases cujas saídas
+estão todas vedadas deixam de ser candidatas) e propaga o bloqueio a montante (uma faixa a encher cuja
+saída está toda bloqueada também conta). Válvula de alívio: vedação máxima de 45 s, depois liberta 20 s.
+
+**Resultado — hora de ponta + via cortada 10 min (espera média em segundos; 8 sementes: 42, 7, 13, 1–5):**
+
+| Configuração | Espera média | Desvio | Variação vs fixo | Melhor que fixo | Teleportes (soma) |
+|---|---|---|---|---|---|
+| Tempo fixo | 135,3 | 30,5 | — | — | 187 |
+| Local (Max-Pressure) | 102,8 | 26,2 | −24 % | 7/8 | 109 |
+| Coordenado (local + camada 2) | 109,5 | 36,6 | −19 % | 6/8 | 152 |
+| Local + vias alternativas | 78,7 | 10,6 | −42 % | 8/8 | 52 |
+| **Coordenado + vias alternativas** | **76,1** | 7,0 | **−44 %** | 8/8 | **31** |
+
+**Leitura honesta:**
+- O ganho vem sobretudo do **controlo local adaptativo** (−24 %) e das **vias alternativas** (mais ~18 pontos,
+  50 % dos condutores a seguir a recomendação). Estão em linha com a literatura.
+- A **camada 2 anti-bloqueio sozinha não melhora o local** (−19 % contra −24 %, e piora na semente 7). Com
+  vias alternativas fica ligeiramente melhor (−44 % contra −42 %) e mais estável (desvio 7,0 contra 10,6;
+  31 teleportes contra 52), mas essa diferença é pequena para 8 sementes e não deve ser vendida como prova.
+- Sem incidente, a camada 2 **nunca chegou a actuar** (resultados idênticos ao local): nem com a procura
+  a dobrar uma faixa de saída passa dos 52 % de ocupação. Nesta rede, o *spillback* só aparece com via cortada.
+- Com a procura a dobrar (`--escala 2`) todas as configurações bloqueiam (≈170 teleportes): a rede fica
+  acima da sua capacidade e nenhum algoritmo de fases resolve isso.
+
+**Desvios ao plano:**
+- Os modos *onda verde* e *escoamento alternado* **não foram implementados**: depois de ver que a camada 2
+  já acrescenta pouco, não havia evidência de que mais heurísticas ajudassem, e o prazo é curto. Ficam como
+  **2c opcional** no fim, se sobrar tempo.
+- `EstadoDoNo` e o barramento de mensagens não existem como tipos: o coordenador lê directamente as leituras
+  de faixa de todos os nós e devolve `OrdemDeModo` por nó. A comunicação é, por isso, em memória.
+- O Max-Pressure local ganhou uma regra de ceder depressa uma fase **sem nenhum veículo** (5 s em vez de
+  20 s). O diagnóstico da semente 13 mostrou que o bloqueio vinha daí (um cruzamento segurava 14 s uma fase
+  vazia com 18 carros à espera), e não de spillback, como eu tinha suposto. Com ela, a semente 13 deixou
+  de bloquear (de 38 para 5 teleportes) e o local passou de −12 % para −33 % sem incidente.
+- Os veículos avariados do incidente ficam fora de todos os KPIs.
+
+**Limitações:** o incidente e a conformidade de 50 % são valores assumidos; as sementes 42, 7 e 13 foram
+usadas para afinar o verde mínimo e a histerese do local.
 
 ### Fase 2a — Controlo local Max-Pressure (10/10/2026)
 Cada um dos 13 semáforos passa a decidir sozinho por Max-Pressure (`controlo/local/max_pressure.py`),
@@ -105,7 +147,9 @@ vídeo real, o YOLO produz o mesmo tipo de dado. O algoritmo só vê `ContagemPo
   pressão (carros a entrar − carros nas vias de saída). Respeita verde mínimo, amarelo e vermelho
   máximo (peões). Sem ordem do coordenador, decide sozinho — se a coordenação falhar, o cruzamento
   continua a funcionar.
-- **Camada 2 — coordenador de corredor:** lê o estado de todos os nós e atribui **modos** com duração:
+- **Camada 2 — coordenador:** *implementado:* anti-bloqueio (*gating* com propagação a montante) e vias
+  alternativas (ver Histórico, Fase 2b). *Não implementado (2c opcional):* onda verde e escoamento
+  alternado. Desenho original, que atribui **modos** com duração:
   - *gating*: reduz o verde da entrada a montante, para parar de alimentar a zona saturada;
   - *onda verde*: verde longo no corredor, com desfasamento entre nós;
   - *escoamento alternado*: quando a fila numa travessa passa o limite, dá-lhe verde (~7 s) e
@@ -164,13 +208,14 @@ Código, identificadores e mensagens em português.
 
 ## 4. Backlog por fases
 
-### Fase 2 — Controlo (dias 3–5)
-- [ ] `EstadoDoNo`, `OrdemDeModo`, `ContagemPorVia` em `comum/`
-- [ ] Camada 1: Max-Pressure por cruzamento, com verde mínimo / amarelo / vermelho máximo
-- [ ] Camada 2: coordenador com modos *gating*, *onda verde*, *escoamento alternado*
-- [ ] Vias alternativas via `rerouteTraveltime`
-- [ ] Comparação **fixo vs local vs local+coordenador** nos mesmos cenários (hora de ponta, normal, incidente)
-- [ ] Testes unitários das regras (pressão, limiares, duração dos modos, regresso ao normal)
+### Fase 2 — Controlo (dias 3–5) — feita, ver Histórico
+- [x] Tipos partilhados, ponte TraCI, Max-Pressure local (camada 1)
+- [x] Coordenador anti-bloqueio com propagação e válvula de alívio (camada 2)
+- [x] Vias alternativas via `rerouteTraveltime` (conformidade de 50 %)
+- [x] Cenário de incidente (via cortada) e comparação de 5 configurações em 8 sementes
+- [x] Testes unitários das regras (controlador, coordenador, métricas)
+- [ ] *2c opcional:* onda verde e escoamento alternado (só se sobrar tempo)
+- [ ] Cenário de hora normal (`--escala 0.5`) incluído na tabela final
 
 ### Fase 3 — Visão (dias 6–8)
 - [ ] Escolher vídeo público de tráfego (cruzamento, câmara fixa)

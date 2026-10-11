@@ -20,3 +20,16 @@ def test_sementes_diferentes_dao_resultados_diferentes(tmp_path):
     b = executar_simulacao("fixo", semente=2, limite_s=300, pasta_saida=tmp_path / "b")
 
     assert a["espera_media_s"] != b["espera_media_s"]
+
+
+@pytest.mark.slow
+def test_cenario_com_incidente_e_vias_alternativas_corre_e_nao_conta_os_avariados(tmp_path):
+    # O incidente começa aos 1200 s: o limite tem de o ultrapassar para o código do evento correr.
+    r = executar_simulacao(
+        "coordenado", semente=7, limite_s=1400, incidente=True, vias_alternativas=True, pasta_saida=tmp_path
+    )
+
+    assert r["incidente"] is True and r["vias_alternativas"] is True
+    assert r["veiculos_concluidos"] > 0
+    # Os 2 avariados esperam 600 s por desenho; se entrassem na média, ficava acima disto.
+    assert r["espera_media_s"] < 300

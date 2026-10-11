@@ -33,3 +33,16 @@ def test_ler_viagens_do_tripinfo(tmp_path: Path):
     )
 
     assert ler_viagens(ficheiro) == [Viagem(5.5, 9.0, 60.0)]
+
+
+def test_ler_viagens_ignora_os_veiculos_avariados_do_incidente(tmp_path: Path):
+    ficheiro = tmp_path / "tripinfo.xml"
+    ficheiro.write_text(
+        '<tripinfos>'
+        '<tripinfo id="avariado_0" waitingTime="600" timeLoss="600" duration="650"/>'
+        '<tripinfo id="a" waitingTime="5" timeLoss="9" duration="60"/>'
+        '</tripinfos>',
+        encoding="utf-8",
+    )
+
+    assert ler_viagens(ficheiro) == [Viagem(5.0, 9.0, 60.0)]
