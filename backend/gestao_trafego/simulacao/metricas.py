@@ -11,6 +11,11 @@ from statistics import mean, pstdev
 from xml.etree import ElementTree as ET
 
 
+# Os veículos que o cenário de incidente imobiliza para cortar a via ficam parados por desenho;
+# se entrassem nas médias, estragavam a espera média de todos os cenários que têm incidente.
+PREFIXO_VEICULO_DO_INCIDENTE = "avariado_"
+
+
 @dataclass(frozen=True)
 class Viagem:
     espera_s: float  # tempo parado (velocidade < 0,1 m/s): é o "tempo de espera" da monografia
@@ -36,6 +41,7 @@ def ler_viagens(tripinfo: Path) -> list[Viagem]:
             duracao_s=float(v.get("duration")),
         )
         for v in raiz.iter("tripinfo")
+        if not v.get("id").startswith(PREFIXO_VEICULO_DO_INCIDENTE)
     ]
 
 

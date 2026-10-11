@@ -55,3 +55,11 @@ class LeituraDeFaixa:
         """0 = sem fila, 1 = fila de referência parada. Só conta os veículos parados."""
         referencia = min(self.capacidade, FILA_DE_REFERENCIA_VEICULOS)
         return min(1.0, self.parados / referencia) if referencia > 0 else 0.0
+
+
+@dataclass(frozen=True)
+class OrdemDeModo:
+    """Ordem da camada 2 (coordenador) a um cruzamento. A omissão é «sem ordem»."""
+
+    faixas_vedadas: frozenset[str] = frozenset()  # faixas de saída que não devem receber mais carros
+    peso_saida: float = 1.0  # quanto pesa, na pressão, encher a faixa de saída (>1 = mais cautela)
