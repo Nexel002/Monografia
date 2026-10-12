@@ -48,13 +48,43 @@ def seguir_veiculos(
         verbose=False,
     )
     for indice, resultado in enumerate(resultados):
-        caixas = resultado.boxes
-        deteccoes = []
-        # Sem identificador (o seguimento ainda não confirmou o objecto) não se conta: contava-se
-        # o mesmo veículo mais do que uma vez quando ganhasse identificador.
-        if caixas is not None and caixas.id is not None:
-            for xyxy, id_, conf, classe in zip(
-                caixas.xyxy.tolist(), caixas.id.int().tolist(), caixas.conf.tolist(), caixas.cls.int().tolist()
-            ):
-                deteccoes.append(Deteccao(id_, Caixa(*xyxy), CLASSES_DE_VEICULOS[classe], conf))
-        yield Fotograma(indice, resultado.orig_img, deteccoes)
+        yield Fotograma(indice, resultado.orig_img, _converter(resultado))
+
+
+def _converter(resultado) -> list[Deteccao]:
+    caixas = resultado.boxes
+    # Sem identificador (o seguimento ainda não confirmou o objecto) não se conta: contava-se
+    # o mesmo veículo mais do que uma vez quando ganhasse identificador.
+    if caixas is None or caixas.id is None:
+        return []
+    return [
+        Deteccao(id_, Caixa(*xyxy), CLASSES_DE_VEICULOS[classe], conf)
+        for xyxy, id_, conf, classe in zip(
+            caixas.xyxy.tolist(), caixas.id.int().tolist(), caixas.conf.tolist(), caixas.cls.int().tolist()
+        )
+    ]
+
+
+class SeguidorDeVeiculos:
+    """Versão fotograma-a-fotograma, para quem decide quais fotogramas analisar (modo ao vivo).
+
+    O seguimento mantém o estado entre chamadas (`persist=True`): com fotogramas saltados os
+    identificadores continuam a servir, desde que os veículos não andem muito entre análises.
+    """
+
+    def __init__(self, modelo: str = "yolov8n.pt", confianca: float = 0.3, tamanho_imagem: int = 640):
+        self._detector = YOLO(modelo)
+        self._confianca = confianca
+        self._tamanho_imagem = tamanho_imagem
+
+    def seguir(self, imagem: np.ndarray) -> list[Deteccao]:
+        resultado = self._detector.track(
+            imagem,
+            persist=True,
+            tracker="bytetrack.yaml",
+            classes=list(CLASSES_DE_VEICULOS),
+            conf=self._confianca,
+            imgsz=self._tamanho_imagem,
+            verbose=False,
+        )[0]
+        return _converter(resultado)

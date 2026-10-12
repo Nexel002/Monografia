@@ -10,24 +10,64 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 ## 1. Fase em curso
 
-**Fase 3 — Visão computacional (dias 6–8)**
+**Fase 4 — Previsão, dados e API (dias 9–11)**
 
-- [ ] Escolher um vídeo público de tráfego (câmara fixa, vista de cruzamento) e registar a fonte e a licença
-- [ ] Dependências: `opencv-python` e `ultralytics` (YOLO nano). A descarga do PyTorch é grande: com a
-      rede actual o SUMO demorou 18 min, por isso fazê-la cedo e em segundo plano
-- [ ] Detecção por tipo (carro, camião, mota, autocarro) em CPU; medir fotogramas por segundo
-- [ ] Tracking (IDs estáveis) e linha virtual de contagem por via; estimativa de fila
-- [ ] Vídeo anotado com caixas e contadores (parte visual da defesa)
-- [ ] Saída no formato `ContagemPorVia` (o mesmo que o controlo consome)
-- [ ] Precisão: contagem manual de um trecho do vídeo contra a automática
-- [ ] Testes da lógica de contagem (cruzamento da linha, ID repetido, direcções) sem precisar do YOLO
+- [ ] Decidir onde corre o PostgreSQL (instalação local, Docker ou serviço gratuito na nuvem): não há
+      servidor nesta máquina; a monografia (3.9) compromete PostgreSQL
+- [ ] Previsão: gerar séries de ocupação por faixa a partir do SUMO e treinar um LSTM pequeno em CPU
+      (PyTorch já instalado) que prevê a fila dos minutos seguintes; comparar com a linha de base
+      «amanhã igual a hoje» (persistência) e registar o erro
+- [ ] Persistência: execuções, métricas por passo, decisões do coordenador e contagens da visão
+- [ ] FastAPI + WebSocket: estado ao vivo da simulação, comparação fixo vs inteligente, contagens da visão
+- [ ] Dashboard React: mapa/estado dos semáforos, filas, previsão contra real, KPIs, vídeo anotado
+- [ ] Testes da lógica de previsão e da API
 
-**Como verificar:** `cd backend && uv run python -m gestao_trafego.visao.contar --video dados/videos/<ficheiro>`
-*(comando previsto; confirmar quando existir)*.
+**Como verificar:** *(a definir quando a API existir)*.
 
 ---
 
 ## 1.1 Histórico de entregas
+
+### Fase 3 — Visão: contagem de veículos por vídeo (12/10/2026)
+Detecção e contagem de veículos em vídeo (`backend/gestao_trafego/visao/`): `contagem.py` (contagem por
+linha, pura), `detector.py` (YOLOv8n + ByteTrack do `ultralytics`), `fila.py` (fila parada e agregação por
+janela em `ContagemPorVia`), `extrapolar.py` e `ao_vivo.py` (janela à velocidade real), `anotar.py`,
+`contar.py` (comando). Testes: 25 novos (`uv run pytest`).
+
+- Offline (todos os fotogramas, vídeo anotado): `uv run python -m gestao_trafego.visao.contar --video ../dados/videos/<ficheiro>.mp4`
+- Ao vivo (janela, `q` sai, espaço pausa): o mesmo comando com `--ao-vivo`
+- Vídeo: `transito_autoestrada_pexels_2103099.mp4` (Pexels, autoestrada, 60 s, 1080p, 30 fps) em `dados/videos/` (fora do Git)
+
+**Origem e licença:** a lógica de contagem foi escrita de raiz. O repositório indicado
+(`anselmonhamage/automatic-number-plate-recognition-python-yolov8`, cópia de um tutorial de ANPR) **não
+tem contagem por linha**: só detecção COCO + SORT + matrículas (modelo de matrículas fora do repositório).
+Do áudio do autor (09/10/2026, transcrito localmente com Whisper) aplicou-se: ponto de contagem na **base**
+da caixa e não no centro; contar os dois sentidos; verde = contado, amarelo = por contar; linha genérica
+em fracções da imagem. O repositório é GPL-3.0 e o `ultralytics` AGPL-3.0: nenhum código foi copiado.
+
+**Resultados no vídeo (mesmo vídeo, 3 modos; total contado):**
+
+| Modo | Imagem YOLO | Velocidade | Total |
+|---|---|---|---|
+| Todos os fotogramas | 960 | 1,7 fotogramas/s | 54 |
+| Todos os fotogramas | 480 | 6,9 fotogramas/s | 61 |
+| Ao vivo (vídeo a 30 fps, análise em paralelo) | 480 | 4,5 análises/s | 41 |
+| Ao vivo, 1.ª versão (desenhava a 1080p) | 640 | 1,0 análises/s | 25 |
+
+**Leitura honesta:**
+- **A precisão não está medida.** 54 e 61 diferem 13 % só por mudar a resolução da imagem; sem contagem
+  manual não se sabe qual está certo. Contagem de referência a obter: carros que cruzam a linha nos
+  primeiros 30 s (o sistema, a 960, contou 26).
+- O modo ao vivo conta **menos** (41 contra 61 com o mesmo modelo): com poucas análises por segundo o
+  seguimento perde a identidade de alguns veículos. A causa foi confirmada por exclusão (imagem 480 com
+  todos os fotogramas dá 61). **A contagem oficial deve vir do modo fotograma-a-fotograma**; o ao vivo
+  serve para mostrar o algoritmo a trabalhar.
+- A 1.ª versão ao vivo tinha o detector a 1 análise/s (medido 6/s isolado) porque desenhar a 1080p
+  consumia os 4 núcleos; reduzir o vídeo a 960 de largura e usar imagem 480 levou-o a 4,5/s.
+- O vídeo é de **autoestrada**, não de um cruzamento de Maputo; o próprio autor do tutorial diz que não é
+  bom para visão computacional. Substituível pondo outro ficheiro em `dados/videos/`.
+- Matrículas (ANPR): **não implementadas** (modelo de matrículas indisponível; não é necessário ao controlo).
+  Fica como trabalho futuro na monografia.
 
 ### Fase 2b — Coordenação, incidente e vias alternativas (11/10/2026)
 Camada 2 (`controlo/coordenador/anti_bloqueio.py`), cenário `coordenado`, incidente que corta a Av. 24
@@ -217,12 +257,15 @@ Código, identificadores e mensagens em português.
 - [ ] *2c opcional:* onda verde e escoamento alternado (só se sobrar tempo)
 - [ ] Cenário de hora normal (`--escala 0.5`) incluído na tabela final
 
-### Fase 3 — Visão (dias 6–8)
-- [ ] Escolher vídeo público de tráfego (cruzamento, câmara fixa)
-- [ ] YOLO nano em CPU: detecção por tipo (carro, camião, mota, autocarro)
-- [ ] Tracking + linha virtual de contagem; estimativa de fila
-- [ ] Vídeo anotado com contadores; medir precisão da contagem contra contagem manual
-- [ ] Saída no formato `ContagemPorVia`
+### Fase 3 — Visão (dias 6–8) — feita, ver Histórico (falta medir a precisão)
+- [x] Vídeo público (Pexels, autoestrada); fonte registada
+- [x] YOLO nano em CPU por tipo (carro, mota, autocarro, camião) e velocidade medida
+- [x] Seguimento (ByteTrack) e linha virtual de contagem por via; estimativa de fila
+- [x] Vídeo anotado com caixas, contadores e janela ao vivo
+- [x] Saída em `ContagemPorVia` por janelas de tempo
+- [x] Testes da lógica (contagem, fila, janelas, extrapolação) sem o YOLO
+- [ ] **Precisão:** contagem manual de um trecho contra a automática (depende de uma pessoa)
+- [ ] Ligar a visão ao controlo na demo (a `ContagemPorVia` da câmara ao lado da da simulação)
 
 ### Fase 4 — Previsão, dados e API (dias 9–11)
 - [ ] Séries de contagens geradas pelo SUMO → LSTM pequeno (CPU) → previsão de filas
@@ -259,6 +302,8 @@ que o YOLO nano em CPU atinge taxa suficiente para a demo.
 
 - **Índice de acidentes:** o SUMO não produz acidentes reais. Só colisões simuladas, travagens bruscas e
   situações de risco. É um *indicador de risco simulado*, não estatística real.
+- **Visão em CPU:** 1,7 a 6,9 fotogramas/s consoante a resolução; não serve câmara em tempo real neste
+  computador e a contagem ao vivo subconta (ver Histórico, Fase 3). A demo mostra o vídeo anotado já processado.
 - **Vídeo ≠ simulação:** a ligação é por formato de dado, validada por módulos — não há câmara real a
   alimentar o SUMO.
 - **Calibração:** sem a planilha de Agosto, os cenários não estão calibrados com dados reais. A monografia
@@ -273,5 +318,7 @@ que o YOLO nano em CPU atinge taxa suficiente para a demo.
 
 - [ ] ~~Planilha Excel da observação directa~~ — não disponível; trabalha-se sem ela (valores assumidos). Trazê-la antes da defesa se possível
 - [x] Modelo do assistente: Gemini; chave e modelos em `backend/.env` (fora do Git)
+- [ ] Contar à mão os carros que cruzam a linha nos primeiros 30 s do vídeo anotado
+      (`dados/resultados/visao_autoestrada_completo/anotado.mp4`; o sistema contou 26) e dizer o número
 - [ ] Corrigir na monografia: nome do C3 (3.3.1 vs Tabela 1), secções por numerar/ordenar, notas internas
       e referências duplicadas, e descrever em 3.7.5 as duas camadas de controlo

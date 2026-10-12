@@ -63,3 +63,27 @@ class OrdemDeModo:
 
     faixas_vedadas: frozenset[str] = frozenset()  # faixas de saída que não devem receber mais carros
     peso_saida: float = 1.0  # quanto pesa, na pressão, encher a faixa de saída (>1 = mais cautela)
+
+
+@dataclass(frozen=True)
+class ContagemPorVia:
+    """O que a visão entrega ao resto do sistema: tráfego de uma via numa janela de tempo.
+
+    É o mesmo tipo de dado que, na simulação, os detectores do SUMO produzem; o controlo só vê isto,
+    venha de uma câmara ou do simulador.
+    """
+
+    via: str
+    inicio_s: float
+    fim_s: float
+    por_tipo: dict[str, int]
+    fila_media_veiculos: float  # veículos parados a montante da linha, em média na janela
+
+    @property
+    def total(self) -> int:
+        return sum(self.por_tipo.values())
+
+    @property
+    def fluxo_veiculos_por_hora(self) -> float:
+        duracao = self.fim_s - self.inicio_s
+        return self.total * 3600 / duracao if duracao > 0 else 0.0
