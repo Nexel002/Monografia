@@ -1,8 +1,8 @@
 import { useQueries, useQuery } from "@tanstack/react-query";
 import { obterComparacao, obterExecucoes, obterSerie } from "../api/resultadosApi";
 
-export const useComparacao = (incidente: boolean) =>
-  useQuery({ queryKey: ["comparacao", incidente], queryFn: () => obterComparacao(incidente) });
+export const useComparacao = (incidente: boolean, escala: number) =>
+  useQuery({ queryKey: ["comparacao", incidente, escala], queryFn: () => obterComparacao(incidente, escala) });
 
 export const useExecucoes = () => useQuery({ queryKey: ["execucoes"], queryFn: obterExecucoes });
 

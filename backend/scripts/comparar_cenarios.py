@@ -54,6 +54,8 @@ def main() -> None:
                 existente = pasta_de_resultados(cenario, semente, argumentos.escala, argumentos.incidente, vias) / "resumo.json"
                 if argumentos.saltar_existentes and existente.exists():
                     r = json.loads(existente.read_text(encoding="utf-8"))
+                    # As corridas anteriores à opção --incidente não guardavam este campo: é o do pedido.
+                    r.setdefault("incidente", argumentos.incidente)
                     print(f"{nome:16} s{semente:<3} (já existia)", flush=True)
                 else:
                     r = executar_simulacao(

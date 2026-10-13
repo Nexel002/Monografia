@@ -6,26 +6,28 @@ import { GraficoDeEspera } from "../components/GraficoDeEspera";
 import { GraficoDeSerie } from "../components/GraficoDeSerie";
 import { TabelaComparativa } from "../components/TabelaComparativa";
 import { useComparacao, useExecucoes, useSeries } from "../hooks/useResultados";
+import { CENARIOS, cenarioPorId, type IdDoCenario } from "../utils/cenarios";
 
 export function PaginaResultados() {
-  const [incidente, setIncidente] = useState(true);
+  const [idDoCenario, setIdDoCenario] = useState<IdDoCenario>("ponta-via");
+  const { incidente, escala, descricao } = cenarioPorId(idDoCenario);
   const [semente, setSemente] = useState<number | null>(null);
-  const comparacao = useComparacao(incidente);
+  const comparacao = useComparacao(incidente, escala);
   const execucoes = useExecucoes();
 
   // Execuções da semente escolhida, uma por configuração, na ordem do estudo.
   const sementesDisponiveis = useMemo(
-    () => [...new Set((execucoes.data ?? []).filter((e) => e.incidente === incidente).map((e) => e.semente))].sort((a, b) => a - b),
-    [execucoes.data, incidente],
+    () => [...new Set((execucoes.data ?? []).filter((e) => e.incidente === incidente && e.escala === escala).map((e) => e.semente))].sort((a, b) => a - b),
+    [execucoes.data, incidente, escala],
   );
   const sementeEscolhida = semente !== null && sementesDisponiveis.includes(semente) ? semente : (sementesDisponiveis[0] ?? null);
   const daSemente = useMemo(
     () =>
       CONFIGURACOES.flatMap((c) => {
-        const e = (execucoes.data ?? []).find((x) => x.configuracao === c.id && x.semente === sementeEscolhida && x.incidente === incidente && x.escala === 1);
+        const e = (execucoes.data ?? []).find((x) => x.configuracao === c.id && x.semente === sementeEscolhida && x.incidente === incidente && x.escala === escala);
         return e ? [{ configuracao: c.id, id: e.id }] : [];
       }),
-    [execucoes.data, sementeEscolhida, incidente],
+    [execucoes.data, sementeEscolhida, incidente, escala],
   );
   const series = useSeries(daSemente.map((e) => e.id));
   const seriesProntas = series.every((s) => s.data) ? daSemente.map((e, i) => ({ configuracao: e.configuracao, amostras: series[i].data! })) : null;
@@ -37,12 +39,15 @@ export function PaginaResultados() {
           <h1>Resultados da comparação</h1>
           <p>
             O mesmo tráfego, a mesma hora de ponta, cinco formas de controlar os semáforos. As médias usam só as sementes (conjuntos de
-            veículos) que existem em todas as configurações, para a comparação ser justa.
+            veículos) que existem em todas as configurações, para a comparação ser justa. {descricao}
           </p>
         </div>
         <div className="segmentado" role="group" aria-label="Cenário">
-          <button aria-pressed={incidente} onClick={() => setIncidente(true)}>Hora de ponta + via cortada</button>
-          <button aria-pressed={!incidente} onClick={() => setIncidente(false)}>Hora de ponta</button>
+          {CENARIOS.map((c) => (
+            <button key={c.id} aria-pressed={idDoCenario === c.id} onClick={() => setIdDoCenario(c.id)}>
+              {c.rotulo}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -86,7 +91,7 @@ export function PaginaResultados() {
             )
           }
         </EstadoDaConsulta>
-        <p className="nota">Cada linha é uma configuração a correr os mesmos veículos. O pico é a hora de ponta; a via cortada começa aos 20 minutos.</p>
+        <p className="nota">Cada linha é uma configuração a correr os mesmos veículos. A via cortada, quando existe, começa aos 20 minutos.</p>
       </Cartao>
     </>
   );

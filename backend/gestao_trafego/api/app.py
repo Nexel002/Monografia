@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from gestao_trafego.api import ao_vivo, rotas_historico, rotas_visao, visao_ao_vivo
+from gestao_trafego.api import ao_vivo, rotas_assistente, rotas_historico, rotas_visao, visao_ao_vivo
 from gestao_trafego.comum.configuracao import ler
 
 # O Vite (dashboard em desenvolvimento) serve a partir de outra porta, por isso o browser pede CORS.
@@ -34,11 +34,12 @@ def criar_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=ler("ORIGENS_PERMITIDAS", ORIGENS_POR_OMISSAO).split(","),
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST"],
         allow_headers=["*"],
     )
     app.include_router(rotas_historico.router)
     app.include_router(rotas_visao.router)
+    app.include_router(rotas_assistente.router)
     app.include_router(ao_vivo.router)
     app.include_router(visao_ao_vivo.router)
     return app

@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Cabecalho } from "./app/layout/Cabecalho";
+import { PaginaAssistente } from "./features/assistente/pages/PaginaAssistente";
 import { PaginaPrevisao } from "./features/previsao/pages/PaginaPrevisao";
 import { PaginaResultados } from "./features/resultados/pages/PaginaResultados";
 import { PaginaSimulacao } from "./features/simulacao/pages/PaginaSimulacao";
@@ -21,6 +22,7 @@ export default function App() {
               <Route path="/resultados" element={<PaginaResultados />} />
               <Route path="/previsao" element={<PaginaPrevisao />} />
               <Route path="/visao" element={<PaginaVisao />} />
+              <Route path="/assistente" element={<PaginaAssistente />} />
               <Route path="*" element={<div className="estado-mensagem">Esta página não existe.</div>} />
             </Routes>
           </main>

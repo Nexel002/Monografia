@@ -14,7 +14,6 @@ from pathlib import Path
 
 import numpy as np
 
-from gestao_trafego.comum.configuracao import RAIZ
 from gestao_trafego.dados import repositorio
 from gestao_trafego.dados.ligacao import ligar
 from gestao_trafego.previsao.dataset import (
@@ -23,11 +22,10 @@ from gestao_trafego.previsao.dataset import (
     janelas_deslizantes,
     previsao_por_persistencia,
 )
+from gestao_trafego.previsao.caminhos import CAMINHO_DAS_METRICAS, CAMINHO_DO_MODELO
 from gestao_trafego.previsao.modelo import treinar
 
 MODELO = "lstm"
-CAMINHO_DO_MODELO = RAIZ / "dados" / "modelos" / "lstm.pt"
-CAMINHO_DAS_METRICAS = RAIZ / "dados" / "resultados" / "previsao_metricas.json"
 HORIZONTES_S = (60, 180, 300)
 RECUO_PASSOS = 30  # 5 minutos de histórico
 
