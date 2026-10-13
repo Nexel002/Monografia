@@ -4,11 +4,16 @@ version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "eclipse-sumo>=1.28.0",
+    "fastapi>=0.143.0",
     "opencv-python>=5.0.0.93",
+    "pgserver>=0.1.4",
+    "psycopg[binary]>=3.3.6",
     "pyproj>=3.8.0",
+    "python-dotenv>=1.2.4",
     "sumolib>=1.28.0",
     "traci>=1.28.0",
     "ultralytics>=8.4.175",
+    "uvicorn[standard]>=0.54.0",
 ]
 
 [dependency-groups]

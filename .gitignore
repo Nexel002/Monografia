@@ -15,3 +15,5 @@ dados/resultados/*
 *.onnx
 *.log
 !.env.example
+dados/postgres/
+dados/modelos/
