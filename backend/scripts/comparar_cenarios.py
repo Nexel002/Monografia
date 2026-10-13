@@ -9,12 +9,13 @@ Cada linha é uma corrida completa (~2-3 min). A tabela é o que alimenta os gr�
 
 import argparse
 import csv
+import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from gestao_trafego.simulacao.executar import PASTA_RESULTADOS, executar_simulacao  # noqa: E402
+from gestao_trafego.simulacao.executar import PASTA_RESULTADOS, executar_simulacao, pasta_de_resultados  # noqa: E402
 
 # (nome na tabela, cenário, com vias alternativas)
 CONFIGURACOES = [
@@ -36,6 +37,7 @@ def main() -> None:
     parser.add_argument("--sementes", type=int, nargs="+", default=[42, 7, 13])
     parser.add_argument("--escala", type=float, default=1.0)
     parser.add_argument("--incidente", action="store_true")
+    parser.add_argument("--saltar-existentes", action="store_true", help="não repete corridas que já têm resumo.json (lê-o para a tabela)")
     parser.add_argument("--etiqueta", default="", help="sufixo do ficheiro, para não sobrescrever outra bateria")
     parser.add_argument("--configuracoes", nargs="+", default=[c[0] for c in CONFIGURACOES])
     argumentos = parser.parse_args()
@@ -49,10 +51,15 @@ def main() -> None:
             if nome not in argumentos.configuracoes:
                 continue
             for semente in argumentos.sementes:
-                r = executar_simulacao(
-                    cenario, semente=semente, escala=argumentos.escala,
-                    incidente=argumentos.incidente, vias_alternativas=vias,
-                )
+                existente = pasta_de_resultados(cenario, semente, argumentos.escala, argumentos.incidente, vias) / "resumo.json"
+                if argumentos.saltar_existentes and existente.exists():
+                    r = json.loads(existente.read_text(encoding="utf-8"))
+                    print(f"{nome:16} s{semente:<3} (já existia)", flush=True)
+                else:
+                    r = executar_simulacao(
+                        cenario, semente=semente, escala=argumentos.escala,
+                        incidente=argumentos.incidente, vias_alternativas=vias,
+                    )
                 escritor.writerow({"configuracao": nome, **{c: r[c] for c in COLUNAS if c != "configuracao"}})
                 f.flush()
                 print(f"{nome:16} s{semente:<3} espera={r['espera_media_s']:.1f} fila={r['fila_media_veiculos']:.1f} "
