@@ -4,10 +4,14 @@ import { EstadoDaConsulta } from "../../../shared/ui/EstadoDaConsulta";
 import { formatarDecimal, formatarInteiro } from "../../../shared/utils/formatar";
 import { enderecoDoVideo } from "../api/visaoApi";
 import { GraficoDeFila, GraficoDeFluxo } from "../components/GraficosDeContagem";
+import { VisaoAoVivo } from "../components/VisaoAoVivo";
 import { usePastas, useResumoDeVisao } from "../hooks/useVisao";
 import { ROTULO_DO_TIPO, TIPOS_DE_VEICULO } from "../types/visao";
 
-export function PaginaVisao() {
+type Separador = "ao-vivo" | "completa";
+
+/** O processamento de todos os fotogramas: a contagem de referência, já calculada. */
+function ContagemCompleta() {
   const pastas = usePastas();
   const [escolhida, setEscolhida] = useState<string | null>(null);
   const comVideo = (pastas.data ?? []).filter((p) => p.tem_video);
@@ -16,34 +20,28 @@ export function PaginaVisao() {
 
   return (
     <>
-      <div className="titulo-de-pagina">
-        <div>
-          <h1>Visão computacional</h1>
-          <p>
-            Uma câmara conta os veículos que cruzam a linha branca. O detector (YOLO) reconhece o tipo de cada veículo e segue-o; a contagem
-            usa a base da caixa. Verde = já contado, amarelo = ainda por contar.
-          </p>
-        </div>
-        <label className="campo">
-          Processamento
-          <select value={pasta ?? ""} onChange={(e) => setEscolhida(e.target.value)} disabled={comVideo.length === 0}>
-            {comVideo.map((p) => (
-              <option key={p.pasta} value={p.pasta}>
-                {p.pasta.replace("visao_", "")} {p.tamanho_imagem ? `· imagem ${p.tamanho_imagem}` : ""}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
       <EstadoDaConsulta consulta={pastas} vazio={() => comVideo.length === 0} mensagemVazia="Ainda não há vídeos processados. Corre python -m gestao_trafego.visao.contar --video ..." alturaDoEsqueleto={380}>
         {() => (
           <div className="grelha grelha-2" style={{ gridTemplateColumns: "minmax(0, 1.5fr) minmax(0, 1fr)" }}>
-            <Cartao titulo="Vídeo anotado">
+            <Cartao
+              titulo="Vídeo anotado"
+              accao={
+                <label className="campo" style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  Processamento
+                  <select value={pasta ?? ""} onChange={(e) => setEscolhida(e.target.value)} disabled={comVideo.length === 0}>
+                    {comVideo.map((p) => (
+                      <option key={p.pasta} value={p.pasta}>
+                        {p.pasta.replace("visao_", "")} {p.tamanho_imagem ? `· imagem ${p.tamanho_imagem}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              }
+            >
               {pasta && <video className="video" src={enderecoDoVideo(pasta)} controls preload="metadata" />}
               <p className="nota">
-                O vídeo é de uma autoestrada (Pexels), não de um cruzamento de Maputo. A contagem oficial vem do processamento de todos os
-                fotogramas; em CPU, a análise ao vivo vê só uma parte e subconta.
+                Resultado de analisar todos os fotogramas do vídeo (a referência). Em CPU o processamento é mais lento do que o vídeo; por
+                isso o modo «Ao vivo» vê só uma parte dos fotogramas e pode contar menos.
               </p>
             </Cartao>
             <Cartao titulo="Contagem">
@@ -94,6 +92,32 @@ export function PaginaVisao() {
           }
         </EstadoDaConsulta>
       )}
+    </>
+  );
+}
+
+export function PaginaVisao() {
+  const [separador, setSeparador] = useState<Separador>("ao-vivo");
+  return (
+    <>
+      <div className="titulo-de-pagina">
+        <div>
+          <h1>Visão computacional</h1>
+          <p>
+            Uma câmara conta os veículos que cruzam a linha branca. O detector (YOLO) reconhece o tipo de cada veículo e segue-o; a contagem
+            usa a base da caixa. Verde = já contado, amarelo = ainda por contar.
+          </p>
+        </div>
+        <div className="segmentado" role="group" aria-label="Modo">
+          <button aria-pressed={separador === "ao-vivo"} onClick={() => setSeparador("ao-vivo")}>
+            Ao vivo
+          </button>
+          <button aria-pressed={separador === "completa"} onClick={() => setSeparador("completa")}>
+            Contagem completa
+          </button>
+        </div>
+      </div>
+      {separador === "ao-vivo" ? <VisaoAoVivo /> : <ContagemCompleta />}
     </>
   );
 }

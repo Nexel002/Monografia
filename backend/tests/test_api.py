@@ -99,3 +99,29 @@ def test_websocket_envia_o_estado_das_duas_simulacoes_e_termina(cliente):
                 assert set(mensagem[lado]["k"]) >= {"na_rede", "parados", "chegados", "espera_media_s"}
             mensagem = ws.receive_json()
         assert mensagem["tipo"] in ("estado", "fim")
+
+
+def test_lista_os_videos_originais(cliente):
+    resposta = cliente.get("/api/visao/videos")
+
+    assert resposta.status_code == 200
+    assert all(set(v) == {"nome", "tamanho_mb"} and v["nome"].endswith(".mp4") for v in resposta.json())
+
+
+@pytest.mark.parametrize("nome", ["nao_existe.mp4", "..%2F..%2Fsegredo.mp4", "video.avi", "a b.mp4"])
+def test_video_original_rejeita_nomes_invalidos_ou_inexistentes(cliente, nome):
+    assert cliente.get(f"/api/visao/videos/{nome}").status_code == 404
+
+
+@pytest.mark.parametrize(
+    "consulta, esperado",
+    [
+        ("video=nao_existe.mp4", "nao_existe.mp4"),
+        ("video=../../x.mp4", "x.mp4"),
+    ],
+)
+def test_websocket_da_visao_rejeita_video_invalido(cliente, consulta, esperado):
+    with cliente.websocket_connect(f"/ws/visao?{consulta}") as ws:
+        mensagem = ws.receive_json()
+
+    assert mensagem["tipo"] == "erro" and esperado in mensagem["mensagem"]

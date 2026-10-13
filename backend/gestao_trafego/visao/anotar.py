@@ -52,8 +52,11 @@ def _painel(quadro: np.ndarray, contador: ContadorDeLinha) -> None:
     sentidos = contador.por_sentido()
     linhas.append(f"Sentido ida/volta: {sentidos['ida']}/{sentidos['volta']}")
 
-    altura_linha = 28
-    cv2.rectangle(quadro, (10, 10), (330, 20 + altura_linha * len(linhas)), PRETO, -1)
+    # O painel escala com a largura do vídeo: com tamanho fixo ocupava metade de um vídeo de 640 px.
+    escala = max(0.5, quadro.shape[1] / 1280)
+    altura_linha = int(28 * escala)
+    margem = int(10 * escala)
+    cv2.rectangle(quadro, (margem, margem), (int(330 * escala), margem + int(10 * escala) + altura_linha * len(linhas)), PRETO, -1)
     for i, texto in enumerate(linhas):
-        cv2.putText(quadro, texto, (20, 38 + altura_linha * i), cv2.FONT_HERSHEY_SIMPLEX, 0.65,
-                    BRANCO if i else VERDE, 2 if i == 0 else 1, cv2.LINE_AA)
+        cv2.putText(quadro, texto, (2 * margem, int(38 * escala) + altura_linha * i), cv2.FONT_HERSHEY_SIMPLEX, 0.65 * escala,
+                    BRANCO if i else VERDE, 2 if i == 0 and escala >= 1 else 1, cv2.LINE_AA)
