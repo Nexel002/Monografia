@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from gestao_trafego.dados import repositorio
 from gestao_trafego.dados.ligacao import ligar
-from gestao_trafego.previsao.treinar import CAMINHO_DAS_METRICAS
+from gestao_trafego.previsao.caminhos import CAMINHO_DAS_METRICAS
 from gestao_trafego.simulacao.geometria import geometria_da_rede
 
 router = APIRouter(prefix="/api")

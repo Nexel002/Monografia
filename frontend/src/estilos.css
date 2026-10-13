@@ -554,3 +554,140 @@ tr:last-child td {
   font-size: 13px;
   text-align: center;
 }
+
+/* ---------- assistente ---------- */
+
+.conversa {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.conversa-mensagens {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: min(58vh, 560px);
+  overflow-y: auto;
+  padding: 4px 2px;
+}
+
+.conversa-vazia {
+  color: var(--tinta-2);
+  margin: auto 0;
+}
+
+.sugestoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.sugestoes button {
+  font-size: 13px;
+}
+
+.balao {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  line-height: 1.5;
+}
+
+.balao.utilizador {
+  align-self: flex-end;
+  background: var(--acento);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+.balao.assistente {
+  align-self: flex-start;
+  background: var(--superficie-2);
+  border-bottom-left-radius: 4px;
+}
+
+.balao-texto,
+.relatorio-texto {
+  white-space: pre-wrap;
+}
+
+.balao.a-pensar {
+  color: var(--tinta-3);
+  font-style: italic;
+}
+
+.balao-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.etiqueta {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--eixo);
+  color: var(--tinta-2);
+}
+
+.etiqueta.gemini {
+  border-color: var(--acento);
+  color: var(--acento);
+}
+
+.etiqueta.seguranca {
+  border-color: var(--aviso);
+  color: var(--aviso);
+}
+
+.balao-aviso {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--tinta-3);
+}
+
+button.icone {
+  padding: 3px 7px;
+  border-radius: 6px;
+}
+
+.conversa-entrada {
+  display: flex;
+  gap: 8px;
+}
+
+.conversa-entrada input {
+  flex: 1;
+  min-width: 0;
+  background: var(--superficie-2);
+  border: 1px solid var(--eixo);
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+
+.lista-de-estado {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.lista-de-estado li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ponto.bom {
+  background: var(--bom);
+}
+
+.ponto.aviso {
+  background: var(--aviso);
+}

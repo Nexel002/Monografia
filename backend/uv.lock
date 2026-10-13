@@ -45,6 +45,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "eclipse-sumo" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "imageio-ffmpeg" },
     { name = "opencv-python" },
     { name = "pgserver" },
@@ -66,6 +67,7 @@ dev = [
 requires-dist = [
     { name = "eclipse-sumo", specifier = ">=1.28.0" },
     { name = "fastapi", specifier = ">=0.143.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "imageio-ffmpeg", specifier = ">=0.6.0" },
     { name = "opencv-python", specifier = ">=5.0.0.93" },
     { name = "pgserver", specifier = ">=0.1.4" },

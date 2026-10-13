@@ -1,4 +1,4 @@
-import { Activity, Camera, LineChart, Moon, Network, Sun } from "lucide-react";
+import { Activity, Bot, Camera, LineChart, Moon, Network, Sun } from "lucide-react";
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 
@@ -20,6 +20,7 @@ const LIGACOES = [
   { para: "/resultados", rotulo: "Resultados", icone: Activity },
   { para: "/previsao", rotulo: "Previsão", icone: LineChart },
   { para: "/visao", rotulo: "Visão computacional", icone: Camera },
+  { para: "/assistente", rotulo: "Assistente", icone: Bot },
 ];
 
 export function Cabecalho() {

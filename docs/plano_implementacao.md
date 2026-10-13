@@ -14,9 +14,7 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 - [ ] Resultados finais para a monografia: mais sementes e o cenário de hora normal (`--escala 0.5`) na tabela
 - [ ] Medir a precisão da contagem de veículos (depende de uma contagem manual — ver Pendências)
-- [ ] Assistente LLM (opcional, **primeira peça a cortar** se o prazo apertar): funções fixas
-      (`fluxo_por_via`, `horas_de_ponta`, `tipos_de_veiculo`, `vias_mais_movimentadas`, `comparar_cenarios`),
-      relatório automático e voz; modo de segurança com respostas pré-gravadas se não houver rede
+- [x] Assistente com Gemini, texto e voz, e modo de segurança (ver Histórico)
 - [ ] Ligar a visão ao controlo na demo (a `ContagemPorVia` da câmara ao lado da da simulação)
 - [ ] Ensaio completo da demonstração e guião de defesa
 
@@ -25,6 +23,30 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 ---
 
 ## 1.1 Histórico de entregas
+
+### Assistente com Gemini, texto e voz (13/10/2026)
+`backend/gestao_trafego/assistente/` e ecrã **Assistente** do dashboard. Testes: 43 novos no backend e 6 no front-end.
+
+- **O que faz:** responde por escrito ou por voz a perguntas sobre os resultados e gera um relatório curto.
+  Consulta os resultados através de 6 funções fixas, **só de leitura** (`comparar_configuracoes`,
+  `precisao_da_previsao`, `contagens_da_visao`, `procura_por_via`, `indicadores_de_risco`, `momentos_de_pico`).
+  Não escreve SQL, não corre simulações e não toca nos semáforos.
+- **Honestidade por desenho:** cada função devolve a `fonte` e um `aviso` (valores assumidos, resultados de
+  simulação, «não há dados de acidentes reais», precisão não medida) e as instruções do modelo mandam repeti-los.
+  Teste real com o Gemini: ao comparar as configurações citou os números certos e disse sozinho que a coordenação
+  isolada não melhorou o local e que nada disto é medição real de Maputo.
+- **Modo de segurança** (`seguranca.py`): se faltar a chave, o modelo ou a rede, responde às perguntas mais
+  prováveis com os mesmos números e avisos, sem modelo de linguagem; o ecrã mostra em que modo está.
+- **Voz:** entrada pelo reconhecimento de voz do browser (Chrome/Edge, pt-PT); saída pela voz do servidor (Google
+  Text-to-Speech, depois ElevenLabs — **ordem assumida**) e, sem chaves ou serviço, pela voz do browser.
+  O Gemini Live (voz em tempo real) **não foi usado**: a voz é reconhecimento + resposta + síntese.
+- **Segurança:** a chave só existe no servidor e vai no cabeçalho (nunca no URL); perguntas limitadas a 1000
+  caracteres, histórico a 20 mensagens (10 chegam ao modelo), 5 voltas de ferramentas no máximo.
+- Rotas: `GET /api/assistente/estado`, `POST /api/assistente/perguntar`, `GET /api/assistente/relatorio`,
+  `POST /api/assistente/voz` (503 quando não há voz de servidor).
+
+**Limitações:** os dados agregados dos resultados são enviados ao Gemini (Google) quando está configurado.
+O assistente só vê o que está na base de dados importada. «Horas de pico» são as da simulação, não do dia real.
 
 ### Visão ao vivo no dashboard (13/10/2026)
 O vídeo corre **no browser** (reprodução nativa, 30 fotogramas/s, fluida) e o algoritmo desenha por cima, em

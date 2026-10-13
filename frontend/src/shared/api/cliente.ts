@@ -29,3 +29,34 @@ export async function obter<T>(caminho: string, parametros?: Record<string, stri
   }
   return resposta.json() as Promise<T>;
 }
+
+async function pedir(caminho: string, opcoes: RequestInit): Promise<Response> {
+  let resposta: Response;
+  try {
+    resposta = await fetch(API_URL + caminho, opcoes);
+  } catch {
+    throw new ErroDaApi(`Não foi possível ligar à API em ${API_URL}. O servidor está a correr?`, 0);
+  }
+  if (!resposta.ok) {
+    const corpo = await resposta.json().catch(() => ({}));
+    throw new ErroDaApi(textoDoDetalhe((corpo as { detail?: unknown }).detail), resposta.status);
+  }
+  return resposta;
+}
+
+/** POST com corpo JSON que devolve JSON tipado. */
+export async function enviar<T>(caminho: string, corpo: unknown): Promise<T> {
+  const resposta = await pedir(caminho, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+  return resposta.json() as Promise<T>;
+}
+
+/** POST com corpo JSON que devolve um ficheiro (áudio). Devolve null se o servidor responder 503 («indisponível»). */
+export async function enviarParaBlob(caminho: string, corpo: unknown): Promise<Blob | null> {
+  try {
+    const resposta = await pedir(caminho, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(corpo) });
+    return await resposta.blob();
+  } catch (erro) {
+    if (erro instanceof ErroDaApi && erro.estado === 503) return null;
+    throw erro;
+  }
+}
