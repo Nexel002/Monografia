@@ -25,6 +25,16 @@ INTERVALO_AMOSTRA_S = 10  # a cada passo seria CSV enorme sem ganho para os grá
 MARGEM_PARA_ESVAZIAR_S = 3600
 
 
+def pasta_de_resultados(
+    cenario: str, semente: int, escala: float, incidente: bool, vias_alternativas: bool, limite_s: int | None = None
+) -> Path:
+    """Onde ficam os resultados de uma corrida. Um limite explícito (ensaio curto) vai no nome: sem isso, um
+    ensaio de 30 minutos sobrescrevia os resultados da corrida completa com o mesmo cenário, semente e escala."""
+    sufixo_limite = f"_lim{limite_s}" if limite_s else ""
+    sufixo_eventos = ("_incidente" if incidente else "") + ("_vias" if vias_alternativas else "")
+    return PASTA_RESULTADOS / f"{cenario}_s{semente}_x{escala}{sufixo_eventos}{sufixo_limite}"
+
+
 def executar_simulacao(
     cenario: str = "fixo",
     semente: int = 42,
@@ -41,12 +51,9 @@ def executar_simulacao(
         raise ValueError(f"Cenário desconhecido: {cenario!r} (existem: {', '.join(CENARIOS)}).")
 
     duracao_procura_s = json.loads(CENARIO_PROCURA.read_text(encoding="utf-8"))["duracao_s"]
-    # Um limite explícito (ensaios curtos) vai no nome da pasta: sem isso, um ensaio de 30 minutos
-    # sobrescrevia os resultados da corrida completa com o mesmo cenário, semente e escala.
-    sufixo_limite = f"_lim{limite_s}" if limite_s else ""
+    limite_s_pedido = limite_s
     limite_s = limite_s or duracao_procura_s + MARGEM_PARA_ESVAZIAR_S
-    sufixo_eventos = ("_incidente" if incidente else "") + ("_vias" if vias_alternativas else "")
-    pasta = pasta_saida or PASTA_RESULTADOS / f"{cenario}_s{semente}_x{escala}{sufixo_eventos}{sufixo_limite}"
+    pasta = pasta_saida or pasta_de_resultados(cenario, semente, escala, incidente, vias_alternativas, limite_s_pedido)
 
     amostras: list[Amostra] = []
     sessao = SessaoDeSimulacao(
