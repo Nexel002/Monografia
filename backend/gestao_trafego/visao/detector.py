@@ -77,6 +77,11 @@ class SeguidorDeVeiculos:
         self._confianca = confianca
         self._tamanho_imagem = tamanho_imagem
 
+    def aquecer(self, imagem: np.ndarray) -> None:
+        """Corre uma deteção que se deita fora. A primeira inferência do YOLO é muito mais lenta do que as
+        seguintes (carrega e prepara tudo); sem isto o vídeo ao vivo acabava antes de a primeira análise sair."""
+        self._detector.predict(imagem, imgsz=self._tamanho_imagem, classes=list(CLASSES_DE_VEICULOS), verbose=False)
+
     def seguir(self, imagem: np.ndarray) -> list[Deteccao]:
         resultado = self._detector.track(
             imagem,

@@ -26,6 +26,33 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 ## 1.1 Histórico de entregas
 
+### Visão ao vivo no dashboard (13/10/2026)
+O vídeo corre **no browser** (reprodução nativa, 30 fotogramas/s, fluida) e o algoritmo desenha por cima, em
+tempo real, as caixas, o tipo, o identificador e o verde/amarelo de «contado / por contar». Ecrã **Visão
+computacional → Ao vivo**; o separador «Contagem completa» mantém o processamento fotograma a fotograma.
+
+- **Servidor:** `visao/sessao_ao_vivo.py` lê o mesmo vídeo em tempo real, entrega ao analisador (thread, agora em
+  `visao/analisador.py`, partilhada com a janela do OpenCV) o fotograma mais recente e emite, por WebSocket
+  `/ws/visao`, as caixas, os totais e as métricas. Rotas `GET /api/visao/videos` e `/api/visao/videos/{nome}`.
+- **Sincronização:** o browser diz de segundo a segundo em que ponto do vídeo está (`sincronizar`) e o servidor
+  acerta o seu relógio por aí; o front-end estima a posição das caixas entre análises (`extrapolar.ts`).
+- Comandos de execução do modo de janela: `--ao-vivo` e `--segundos N` (primeiros N segundos, em ambos os modos).
+
+**Medido:** ao vivo no browser, 10 s do vídeo «Barulho de carro no trânsito»: 10 veículos contados contra 12 na
+contagem fotograma a fotograma (≈83 %); 4 a 10 análises por segundo, atraso de 100 a 280 ms por análise.
+(A janela do OpenCV dava só 2,6 análises/s e 6 veículos: desenhar na mesma máquina roubava CPU ao detector.)
+
+**Bugs encontrados e corrigidos:**
+- O OpenCV 5 devolve **-1** (e não 0) em largura/altura quando o ficheiro não abre: a verificação `not largura`
+  nunca falhava e um vídeo inexistente seguia em frente. Corrigido nos três sítios (`isOpened()` e `<= 0`).
+- A 1.ª análise do YOLO demorou 26 s e, num vídeo de 10 s, a janela fechava sem nenhuma análise (total 0):
+  passou a fazer-se uma análise de aquecimento antes de o relógio arrancar.
+- O painel de totais ocupava metade de um vídeo de 640 px: passou a escalar com a largura.
+
+**Limitações:** o ao vivo vê só uma parte dos fotogramas e subconta (~83 % neste teste; ~50 % noutro, com menos
+análises por segundo); a referência continua a ser o processamento completo. A precisão contra uma contagem
+manual continua por medir. Variáveis novas: nenhuma.
+
 ### Fase 4d — Dashboard React (13/10/2026)
 `frontend/` (Vite + React 19 + TypeScript, TanStack Query, React Router, Recharts, Canvas 2D), organizado por
 funcionalidade (`src/features/{simulacao,resultados,previsao,visao}`). Testes: 36 (`npm test`); `npm run build` compila.

@@ -58,7 +58,7 @@ def contar_video(
     fps = captura.get(cv2.CAP_PROP_FPS) or 30.0
     total_fotogramas = int(captura.get(cv2.CAP_PROP_FRAME_COUNT))
     captura.release()
-    if not largura or not altura:
+    if not captura.isOpened() or largura <= 0 or altura <= 0:  # o OpenCV 5 devolve -1 (não 0) quando o ficheiro não abre
         raise FileNotFoundError(f"Não foi possível abrir o vídeo: {video}")
 
     contador = ContadorDeLinha(
@@ -133,20 +133,26 @@ def main() -> None:
     parser.add_argument("--modelo", default="yolov8n.pt")
     parser.add_argument("--sem-video", action="store_true", help="só conta, não escreve o vídeo anotado")
     parser.add_argument("--max-fotogramas", type=int, default=None)
+    parser.add_argument("--segundos", type=float, default=None, help="só os primeiros N segundos do vídeo (em ambos os modos)")
     parser.add_argument("--janela", type=float, default=10.0, help="duração, em segundos, de cada janela de contagem")
     parser.add_argument("--zona", type=_ler_linha, default=None, help="zona da fila x1,y1,x2,y2 em fracções (por omissão, a montante da linha)")
     parser.add_argument("--ao-vivo", action="store_true", help="janela com o vídeo à velocidade real (q sai, espaço pausa)")
     parser.add_argument("--imgsz", type=int, default=None, help="tamanho da imagem para o YOLO (960 offline, 480 ao vivo)")
     argumentos = parser.parse_args()
     saida = argumentos.saida or PASTA_RESULTADOS / f"visao_{argumentos.video.stem}"
+    max_fotogramas = argumentos.max_fotogramas
+    if argumentos.segundos and not argumentos.ao_vivo:
+        captura = cv2.VideoCapture(str(argumentos.video))
+        max_fotogramas = int(argumentos.segundos * (captura.get(cv2.CAP_PROP_FPS) or 30.0))
+        captura.release()
     if argumentos.ao_vivo:
         from gestao_trafego.visao.ao_vivo import executar_ao_vivo
 
-        resumo = executar_ao_vivo(argumentos.video, argumentos.linha, saida, argumentos.modelo, argumentos.imgsz or 480)
+        resumo = executar_ao_vivo(argumentos.video, argumentos.linha, saida, argumentos.modelo, argumentos.imgsz or 480, argumentos.segundos)
     else:
         resumo = contar_video(
             argumentos.video, argumentos.linha, saida, argumentos.modelo, not argumentos.sem_video,
-            argumentos.max_fotogramas, argumentos.imgsz or 960, argumentos.janela, argumentos.zona,
+            max_fotogramas, argumentos.imgsz or 960, argumentos.janela, argumentos.zona,
         )
         resumo.pop("passagens")
     print(json.dumps(resumo, indent=2, ensure_ascii=False))

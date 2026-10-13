@@ -12,7 +12,18 @@ from gestao_trafego.comum.configuracao import RAIZ
 router = APIRouter(prefix="/api/visao")
 
 PASTA_RESULTADOS = RAIZ / "dados" / "resultados"
+PASTA_VIDEOS = RAIZ / "dados" / "videos"
 _NOME_VALIDO = re.compile(r"^visao_[A-Za-z0-9_\-]+$")
+_VIDEO_VALIDO = re.compile(r"^[A-Za-z0-9_\-]+\.mp4$")
+
+
+def resolver_video(nome: str) -> Path | None:
+    """Caminho de um vídeo de `dados/videos/`, ou None. O nome vem do cliente: só se aceita um nome simples
+    de ficheiro que exista nessa pasta, nunca um caminho."""
+    if not _VIDEO_VALIDO.match(nome):
+        return None
+    ficheiro = PASTA_VIDEOS / nome
+    return ficheiro if ficheiro.is_file() else None
 
 
 def _pasta(nome: str) -> Path:
@@ -20,6 +31,23 @@ def _pasta(nome: str) -> Path:
     if not _NOME_VALIDO.match(nome) or not (PASTA_RESULTADOS / nome).is_dir():
         raise HTTPException(404, f"Não existe a pasta de visão {nome!r}.")
     return PASTA_RESULTADOS / nome
+
+
+@router.get("/videos")
+def listar_videos() -> list[dict]:
+    """Os vídeos originais, para o modo ao vivo (o algoritmo corre sobre eles enquanto passam no browser)."""
+    return [
+        {"nome": f.name, "tamanho_mb": round(f.stat().st_size / 1_000_000, 1)}
+        for f in sorted(PASTA_VIDEOS.glob("*.mp4"))
+    ]
+
+
+@router.get("/videos/{nome}")
+def video_original(nome: str) -> FileResponse:
+    ficheiro = resolver_video(nome)
+    if ficheiro is None:
+        raise HTTPException(404, f"Não existe o vídeo {nome!r}.")
+    return FileResponse(ficheiro, media_type="video/mp4")
 
 
 @router.get("")

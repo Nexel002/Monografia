@@ -17,7 +17,8 @@ from pathlib import Path
 import cv2
 
 from gestao_trafego.visao.anotar import desenhar
-from gestao_trafego.visao.contagem import ContadorDeLinha, Deteccao
+from gestao_trafego.visao.analisador import Analisador
+from gestao_trafego.visao.contagem import ContadorDeLinha
 from gestao_trafego.visao.detector import SeguidorDeVeiculos
 from gestao_trafego.visao.extrapolar import ExtrapoladorDeCaixas
 
@@ -28,62 +29,19 @@ JANELA = "Contagem de veículos (ao vivo)"
 LARGURA_DE_TRABALHO = 960
 
 
-class _Analisador(threading.Thread):
-    def __init__(self, seguidor: SeguidorDeVeiculos, contador: ContadorDeLinha, extrapolador: ExtrapoladorDeCaixas, bloqueio):
-        super().__init__(daemon=True)
-        self._seguidor, self._contador, self._extrapolador, self._bloqueio = seguidor, contador, extrapolador, bloqueio
-        self._pedido: tuple[int, object] | None = None
-        self._condicao = threading.Condition()
-        self._a_correr = True
-        self.analisados = 0
-        self.tempo_de_analise_s = 0.0
-        self.erro: BaseException | None = None
-
-    def submeter(self, indice: int, imagem) -> None:
-        # Uma só vaga: um fotograma novo substitui o que ainda não foi analisado. Analisar fotogramas
-        # velhos só aumentava o atraso das caixas.
-        with self._condicao:
-            self._pedido = (indice, imagem)
-            self._condicao.notify()
-
-    def parar(self) -> None:
-        with self._condicao:
-            self._a_correr = False
-            self._condicao.notify()
-
-    def run(self) -> None:
-        try:
-            while True:
-                with self._condicao:
-                    while self._pedido is None and self._a_correr:
-                        self._condicao.wait()
-                    if not self._a_correr:
-                        return
-                    indice, imagem = self._pedido
-                    self._pedido = None
-                inicio = time.perf_counter()
-                deteccoes: list[Deteccao] = self._seguidor.seguir(imagem)
-                self.tempo_de_analise_s += time.perf_counter() - inicio
-                with self._bloqueio:
-                    self._contador.actualizar(indice, deteccoes)
-                    self._extrapolador.actualizar(indice, deteccoes)
-                self.analisados += 1
-        except BaseException as erro:  # noqa: BLE001 — guarda-se para a thread principal o relançar
-            self.erro = erro
-
-
 def executar_ao_vivo(
     video: Path,
     linha: tuple[float, float, float, float],
     saida: Path,
     modelo: str = "yolov8n.pt",
     tamanho_imagem: int = 480,
+    max_segundos: float | None = None,
 ) -> dict:
     captura = cv2.VideoCapture(str(video))
     largura = int(captura.get(cv2.CAP_PROP_FRAME_WIDTH))
     altura = int(captura.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = captura.get(cv2.CAP_PROP_FPS) or 30.0
-    if not largura or not altura:
+    if not captura.isOpened() or largura <= 0 or altura <= 0:  # o OpenCV 5 devolve -1 (não 0) quando o ficheiro não abre
         raise FileNotFoundError(f"Não foi possível abrir o vídeo: {video}")
 
     escala = min(1.0, LARGURA_DE_TRABALHO / largura)
@@ -91,8 +49,13 @@ def executar_ao_vivo(
     contador = ContadorDeLinha((linha[0] * largura, linha[1] * altura), (linha[2] * largura, linha[3] * altura))
     extrapolador = ExtrapoladorDeCaixas()
     bloqueio = threading.Lock()
-    print("A carregar o modelo...", flush=True)
-    analisador = _Analisador(SeguidorDeVeiculos(modelo, tamanho_imagem=tamanho_imagem), contador, extrapolador, bloqueio)
+    print("A carregar e a aquecer o modelo (a primeira análise é lenta)...", flush=True)
+    seguidor = SeguidorDeVeiculos(modelo, tamanho_imagem=tamanho_imagem)
+    ok, primeira = captura.read()
+    if ok:
+        seguidor.aquecer(cv2.resize(primeira, (largura, altura), interpolation=cv2.INTER_AREA) if escala < 1.0 else primeira)
+        captura.set(cv2.CAP_PROP_POS_FRAMES, 0)  # o vídeo recomeça do princípio: o relógio só arranca depois do aquecimento
+    analisador = Analisador(seguidor, contador, bloqueio, extrapolador.actualizar)
     analisador.start()
 
     cv2.namedWindow(JANELA, cv2.WINDOW_NORMAL)
@@ -115,6 +78,8 @@ def executar_ao_vivo(
             if not ok:
                 break
             indice += 1
+            if max_segundos and indice / fps >= max_segundos:
+                break
             if escala < 1.0:
                 imagem = cv2.resize(imagem, (largura, altura), interpolation=cv2.INTER_AREA)
             analisador.submeter(indice, imagem)
