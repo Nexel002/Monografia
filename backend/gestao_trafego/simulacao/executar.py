@@ -5,6 +5,7 @@ Uso (a partir de backend/):
 
 O cenário `fixo` deixa os semáforos com os programas de tempo fixo que o netconvert gerou: é o
 cenário de referência (o funcionamento actual em Maputo) contra o qual se mede o sistema inteligente.
+A simulação em si vive em `sessao.py`; aqui só se corre até ao fim e se gravam os resultados.
 """
 
 import argparse
@@ -12,25 +13,11 @@ import csv
 import json
 from pathlib import Path
 
-import sumo
-import traci
+from gestao_trafego.controlo.coordenador.anti_bloqueio import ParametrosDoCoordenador
+from gestao_trafego.controlo.local.max_pressure import ParametrosLocais
+from gestao_trafego.simulacao.metricas import Amostra, ler_viagens, resumir
+from gestao_trafego.simulacao.sessao import CENARIO_PROCURA, CENARIOS, RAIZ, SessaoDeSimulacao
 
-from gestao_trafego.controlo.coordenador.anti_bloqueio import CoordenadorAntiBloqueio, ParametrosDoCoordenador
-from gestao_trafego.controlo.local.max_pressure import ControladorLocal, ParametrosLocais
-from gestao_trafego.simulacao.eventos import GestorDeIncidente, carregar_incidente
-from gestao_trafego.simulacao.metricas import PREFIXO_VEICULO_DO_INCIDENTE, Amostra, ler_viagens, resumir
-from gestao_trafego.simulacao.ponte import PonteSumo
-from gestao_trafego.simulacao.procura import gerar_ficheiro_de_procura
-from gestao_trafego.simulacao.rotas_alternativas import RecomendadorDeRotas
-
-# fixo = semáforos como hoje; local = Max-Pressure em cada cruzamento, sem coordenação entre nós;
-# coordenado = local + camada 2 (coordenador anti-bloqueio).
-CENARIOS = ("fixo", "local", "coordenado")
-
-RAIZ = Path(__file__).resolve().parents[3]
-REDE = RAIZ / "dados" / "cenarios" / "corredor_24_de_julho.net.xml"
-CENARIO_PROCURA = RAIZ / "dados" / "cenarios" / "procura_hora_de_ponta.json"
-CENARIO_INCIDENTE = RAIZ / "dados" / "cenarios" / "incidente_24_de_julho.json"
 PASTA_RESULTADOS = RAIZ / "dados" / "resultados"
 
 INTERVALO_AMOSTRA_S = 10  # a cada passo seria CSV enorme sem ganho para os gráficos
@@ -60,79 +47,22 @@ def executar_simulacao(
     limite_s = limite_s or duracao_procura_s + MARGEM_PARA_ESVAZIAR_S
     sufixo_eventos = ("_incidente" if incidente else "") + ("_vias" if vias_alternativas else "")
     pasta = pasta_saida or PASTA_RESULTADOS / f"{cenario}_s{semente}_x{escala}{sufixo_eventos}{sufixo_limite}"
-    pasta.mkdir(parents=True, exist_ok=True)
-
-    procura = gerar_ficheiro_de_procura(CENARIO_PROCURA, pasta / "procura.rou.xml", escala)
-    tripinfo = pasta / "tripinfo.xml"
-
-    comando = [
-        str(Path(sumo.SUMO_HOME) / "bin" / "sumo.exe"),
-        "-n", str(REDE),
-        "-r", str(procura),
-        "--seed", str(semente),
-        "--tripinfo-output", str(tripinfo),
-        "--no-step-log",
-        "--no-warnings",
-    ]
 
     amostras: list[Amostra] = []
-    teleportes = colisoes = 0
-    nome_ligacao = f"{cenario}_{semente}"
-    traci.start(comando, label=nome_ligacao)
-    ligacao = traci.getConnection(nome_ligacao)
-    ponte = PonteSumo(ligacao)
-    controladores: dict[str, ControladorLocal] = {}
-    coordenador: CoordenadorAntiBloqueio | None = None
-    if cenario in ("local", "coordenado"):
-        topologias = ponte.descobrir_topologias()
-        ponte.subscrever_faixas(topologias)
-        for no_id, topologia in topologias.items():
-            controladores[no_id] = ControladorLocal(topologia, parametros_locais)
-            ponte.assumir_controlo(no_id, controladores[no_id].estado)
-        if cenario == "coordenado":
-            coordenador = CoordenadorAntiBloqueio(topologias, parametros_coordenador)
-    estados_aplicados = {no_id: c.estado for no_id, c in controladores.items()}
-    gestor_incidente = GestorDeIncidente(ligacao, carregar_incidente(CENARIO_INCIDENTE)) if incidente else None
-    recomendador = RecomendadorDeRotas(ligacao) if vias_alternativas else None
-    try:
-        tempo = 0
-        while tempo < limite_s and ligacao.simulation.getMinExpectedNumber() > 0:
-            ligacao.simulationStep()
-            tempo = int(ligacao.simulation.getTime())
-            if gestor_incidente:
-                gestor_incidente.passo(tempo)
-            if recomendador:
-                recomendador.passo(tempo)
-            if controladores:
-                leitura = ponte.ler_faixas()
-                ordens = coordenador.passo(tempo, leitura) if coordenador else {}
-                for no_id, controlador in controladores.items():
-                    if coordenador:
-                        controlador.receber_ordem(ordens[no_id])
-                    estado = controlador.passo(tempo, leitura)
-                    # Só se fala com o SUMO quando o estado muda: poupa milhares de chamadas.
-                    if estado != estados_aplicados[no_id]:
-                        ponte.aplicar_estado(no_id, estado)
-                        estados_aplicados[no_id] = estado
-            teleportes += ligacao.simulation.getStartingTeleportNumber()
-            colisoes += ligacao.simulation.getCollidingVehiclesNumber()
-            if tempo % INTERVALO_AMOSTRA_S == 0:
-                ids = [i for i in ligacao.vehicle.getIDList() if not i.startswith(PREFIXO_VEICULO_DO_INCIDENTE)]
-                velocidades = [ligacao.vehicle.getSpeed(i) for i in ids]
-                amostras.append(
-                    Amostra(
-                        tempo_s=tempo,
-                        veiculos_na_rede=len(ids),
-                        veiculos_parados=sum(1 for v in velocidades if v < 0.1),
-                        velocidade_media_ms=sum(velocidades) / len(velocidades) if velocidades else 0.0,
-                    )
-                )
-        nao_concluidos = len([i for i in ligacao.vehicle.getIDList() if not i.startswith(PREFIXO_VEICULO_DO_INCIDENTE)])
-    finally:
-        # O tripinfo só fica completo quando o SUMO fecha.
-        ligacao.close()
+    sessao = SessaoDeSimulacao(
+        cenario, semente, escala, incidente, vias_alternativas, pasta, parametros_locais, parametros_coordenador
+    )
+    with sessao:
+        while sessao.tempo_s < limite_s and not sessao.terminou():
+            sessao.passo()
+            if sessao.tempo_s % INTERVALO_AMOSTRA_S == 0:
+                amostras.append(sessao.amostra())
+        nao_concluidos = sessao.nao_concluidos()
+    # O tripinfo só fica completo depois de a sessão fechar o SUMO.
 
-    resumo = resumir(ler_viagens(tripinfo), amostras, nao_concluidos, teleportes, colisoes, tempo)
+    resumo = resumir(
+        ler_viagens(pasta / "tripinfo.xml"), amostras, nao_concluidos, sessao.teleportes, sessao.colisoes, sessao.tempo_s
+    )
     resumo.update(
         {"cenario": cenario, "semente": semente, "escala": escala, "incidente": incidente,
          "vias_alternativas": vias_alternativas}

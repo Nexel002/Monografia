@@ -9,13 +9,6 @@ from gestao_trafego.dados.importar import importar  # noqa: E402
 from gestao_trafego.dados.ligacao import ligar  # noqa: E402
 
 
-@pytest.fixture(scope="module")
-def url(tmp_path_factory):
-    servidor = pgserver.get_server(tmp_path_factory.mktemp("pg"), cleanup_mode="stop")
-    yield servidor.get_uri()
-    servidor.cleanup()
-
-
 @pytest.fixture
 def ligacao(url):
     with ligar(url) as con:
