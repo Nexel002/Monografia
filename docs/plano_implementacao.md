@@ -10,22 +10,46 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 ## 1. Fase em curso
 
-**Fase 4 — Previsão, dados e API (dias 9–11)**
+**Fase 5 — Assistente, resultados e ensaio (dias 12–14)**
 
-*4a/4b — feitas (ver Histórico):* PostgreSQL embebido, importação dos resultados, LSTM treinado e avaliado.
+- [ ] Resultados finais para a monografia: mais sementes e o cenário de hora normal (`--escala 0.5`) na tabela
+- [ ] Medir a precisão da contagem de veículos (depende de uma contagem manual — ver Pendências)
+- [ ] Assistente LLM (opcional, **primeira peça a cortar** se o prazo apertar): funções fixas
+      (`fluxo_por_via`, `horas_de_ponta`, `tipos_de_veiculo`, `vias_mais_movimentadas`, `comparar_cenarios`),
+      relatório automático e voz; modo de segurança com respostas pré-gravadas se não houver rede
+- [ ] Ligar a visão ao controlo na demo (a `ContagemPorVia` da câmara ao lado da da simulação)
+- [ ] Ensaio completo da demonstração e guião de defesa
 
-*4c — API (feita, ver Histórico).*
-
-*4d — Dashboard React (por fazer):*
-- [ ] Vite + React + TypeScript; mapa ao vivo lado a lado, KPIs, gráficos de resultados e previsão
-      contra real, vídeo anotado com contagens; tema escuro de sala de controlo, a funcionar em ecrã grande
-
-**Como verificar:** `cd backend && uv run python -m gestao_trafego.dados.importar` e
-`uv run python -m gestao_trafego.previsao.treinar` (já existem); a API e o dashboard ficam por definir.
+**Como verificar:** ver o `README.md` na raiz (arranque do backend e do dashboard).
 
 ---
 
 ## 1.1 Histórico de entregas
+
+### Fase 4d — Dashboard React (13/10/2026)
+`frontend/` (Vite + React 19 + TypeScript, TanStack Query, React Router, Recharts, Canvas 2D), organizado por
+funcionalidade (`src/features/{simulacao,resultados,previsao,visao}`). Testes: 36 (`npm test`); `npm run build` compila.
+
+- **Simulação ao vivo:** dois mapas lado a lado do corredor (mesmos veículos, só muda o controlo), veículos
+  vermelhos quando parados, sinais verde/amarelo/vermelho, indicadores ao vivo, comparação percentual e gráfico
+  dos veículos parados. Movimento suave por interpolação entre mensagens do servidor; zoom e arrastar sincronizados.
+- **Resultados:** tabela comparativa (média ± desvio, variação face ao tempo fixo), barras de espera e evolução
+  dos veículos parados numa corrida, com e sem incidente.
+- **Previsão:** erro do LSTM contra a persistência por horizonte e por configuração, e previsto contra real.
+- **Visão:** vídeo anotado, contagem por tipo e, nos processamentos novos, fluxo e fila por janela.
+- Tema escuro por omissão, claro à escolha. Cor por configuração igual em todos os ecrãs. A paleta categórica
+  passa o validador do método no escuro; no claro dois tons ficam abaixo de 3:1 e por isso há rótulos e tabelas.
+  Os quatro estados de cada chamada (a carregar, erro, vazio, sucesso) estão tratados.
+- Arranque: ver `README.md`. Variável nova (front-end): `VITE_API_URL` (opcional; por omissão `http://localhost:8000`).
+
+**Achados e correcções:**
+- O vídeo anotado do OpenCV (MPEG-4 parte 2) **não reproduz em Chrome nem Edge**: o leitor ficava vazio.
+  Passou a converter-se para H.264 com o ffmpeg do pacote `imageio-ffmpeg` (`visao/video.py`).
+- A comparação «veículos parados agora» saltava centenas por cento (ruído do instante); passou a comparar a
+  média desde o início da simulação.
+
+**Limitações:** o desenho foi verificado por capturas de ecrã no Chrome (via Playwright), não por testes
+automáticos de interface. A simulação ao vivo corre a ~15× no máximo neste computador (CPU).
 
 ### Fase 4c — API e simulação ao vivo (13/10/2026)
 `simulacao/sessao.py` (simulação passo a passo, extraída de `executar.py`), `simulacao/geometria.py` (ruas e
@@ -330,7 +354,7 @@ Código, identificadores e mensagens em português.
 - [x] LSTM treinado e avaliado contra a linha de base de persistência
 - [x] `SessaoDeSimulacao` (refactor) e simulação ao vivo
 - [x] FastAPI + WebSocket
-- [ ] Dashboard React
+- [x] Dashboard React
 - [x] Testes da API
 
 ### Fase 5 — Assistente, resultados e ensaio (dias 12–14)

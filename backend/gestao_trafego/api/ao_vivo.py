@@ -35,8 +35,12 @@ def _parametros_da_configuracao(nome: str) -> tuple[str, bool]:
 
 def _estado_para_json(i: Instantaneo) -> dict:
     return {
-        # [x, y, ângulo, tipo, parado]: arrays em vez de objectos para a mensagem ficar pequena
-        "v": [[round(v.x, 1), round(v.y, 1), round(v.angulo), _TIPOS.get(v.tipo, 0), int(v.parado)] for v in i.veiculos.values()],
+        # [id, x, y, ângulo, tipo, parado]: arrays em vez de objectos para a mensagem ficar pequena. O id
+        # permite ao dashboard interpolar a posição de cada veículo entre mensagens (movimento suave).
+        "v": [
+            [id_, round(v.x, 1), round(v.y, 1), round(v.angulo), _TIPOS.get(v.tipo, 0), int(v.parado)]
+            for id_, v in i.veiculos.items()
+        ],
         "s": i.semaforos,
         "k": {
             "na_rede": i.na_rede,

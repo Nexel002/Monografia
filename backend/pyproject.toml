@@ -5,6 +5,7 @@ requires-python = ">=3.12"
 dependencies = [
     "eclipse-sumo>=1.28.0",
     "fastapi>=0.143.0",
+    "imageio-ffmpeg>=0.6.0",
     "opencv-python>=5.0.0.93",
     "pgserver>=0.1.4",
     "psycopg[binary]>=3.3.6",
