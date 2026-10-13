@@ -14,14 +14,7 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 *4a/4b — feitas (ver Histórico):* PostgreSQL embebido, importação dos resultados, LSTM treinado e avaliado.
 
-*4c — API (por fazer):*
-- [ ] Refactor: extrair de `executar.py` uma `SessaoDeSimulacao` que avança passo a passo (hoje o ciclo
-      está dentro de uma função só), para a mesma lógica servir a corrida em lote e a simulação ao vivo
-- [ ] FastAPI: rotas de histórico (execuções, série, comparação por configuração, previsões, contagens da visão)
-- [ ] WebSocket: simulação ao vivo com **dois cenários lado a lado** (tempo fixo contra coordenado + vias),
-      mesma semente; envia posições dos veículos, estado dos semáforos e KPIs
-- [ ] Rota da geometria da rede (ruas e semáforos) e do vídeo anotado
-- [ ] Testes da API
+*4c — API (feita, ver Histórico).*
 
 *4d — Dashboard React (por fazer):*
 - [ ] Vite + React + TypeScript; mapa ao vivo lado a lado, KPIs, gráficos de resultados e previsão
@@ -33,6 +26,29 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 ---
 
 ## 1.1 Histórico de entregas
+
+### Fase 4c — API e simulação ao vivo (13/10/2026)
+`simulacao/sessao.py` (simulação passo a passo, extraída de `executar.py`), `simulacao/geometria.py` (ruas e
+sinais para o mapa) e `api/` (FastAPI). Testes: 12 novos; total 82 (`uv run pytest`).
+
+- Arranque: `cd backend && uv run uvicorn gestao_trafego.api.app:criar_app --factory --port 8000`
+  (documentação interactiva em `http://localhost:8000/docs`)
+- Leitura (HTTP): `/api/saude`, `/api/rede`, `/api/execucoes`, `/api/execucoes/{id}/serie`,
+  `/api/comparacao`, `/api/previsao/metricas`, `/api/previsao/{id}`, `/api/contagens`, `/api/visao`,
+  `/api/visao/{pasta}/resumo` e `/video`
+- **WebSocket `/ws/simulacao`**: duas simulações SUMO lado a lado com a **mesma semente** (por omissão, tempo
+  fixo à esquerda e coordenado + vias à direita, com incidente), a velocidade regulável (`velocidade`, `limite`,
+  `semente`, `esquerda`, `direita`); envia posições dos veículos, estado dos semáforos e indicadores
+  várias vezes por segundo. Comandos do cliente: `pausa`, `retomar`, `velocidade`.
+- Medido: a pedido de 20× o servidor deu 14,8× (≈3 mensagens/s) com as duas simulações; o que limita é o CPU.
+
+**Verificação do refactor:** a mesma corrida (coordenado + incidente + vias, semente 7, 1500 s) dá o resultado
+**byte a byte igual** antes e depois da extracção da `SessaoDeSimulacao`.
+
+**Notas:** o nome do vídeo na rota é validado contra o padrão `visao_*` (nunca um caminho arbitrário); nova
+variável `ORIGENS_PERMITIDAS` (CORS; sem ela, só o Vite em `localhost:5174`), em `backend/.env.example`.
+O `observar` da sessão só liga na simulação ao vivo, para as corridas em lote não pagarem a leitura de
+cada veículo a cada segundo.
 
 ### Fase 4a/4b — Base de dados e previsão (13/10/2026)
 `dados/` (PostgreSQL) e `previsao/` (LSTM). Testes: 17 novos; total 70 (`uv run pytest`).
@@ -312,10 +328,10 @@ Código, identificadores e mensagens em português.
 - [x] PostgreSQL decidido e a funcionar (embebido, sem instalação)
 - [x] Persistência: execuções, séries, contagens da visão e previsões
 - [x] LSTM treinado e avaliado contra a linha de base de persistência
-- [ ] `SessaoDeSimulacao` (refactor) e simulação ao vivo
-- [ ] FastAPI + WebSocket
+- [x] `SessaoDeSimulacao` (refactor) e simulação ao vivo
+- [x] FastAPI + WebSocket
 - [ ] Dashboard React
-- [ ] Testes da API
+- [x] Testes da API
 
 ### Fase 5 — Assistente, resultados e ensaio (dias 12–14)
 - [ ] Resultados e gráficos para a monografia (média, desvio-padrão, antes/depois — secção 3.10)
