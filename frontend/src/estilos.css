@@ -607,8 +607,8 @@ tr:last-child td {
   border-bottom-left-radius: 4px;
 }
 
-.balao-texto,
-.relatorio-texto {
+/* Só o texto do utilizador conserva as quebras de linha como escreveu; o do assistente é formatado. */
+.balao.utilizador .balao-texto {
   white-space: pre-wrap;
 }
 
@@ -690,4 +690,40 @@ button.icone {
 
 .ponto.aviso {
   background: var(--aviso);
+}
+
+.texto-formatado p {
+  margin: 0 0 8px;
+}
+
+.texto-formatado p:last-child {
+  margin-bottom: 0;
+}
+
+.texto-formatado .texto-titulo {
+  font-weight: 650;
+  margin-top: 6px;
+}
+
+.texto-formatado ul,
+.texto-formatado ol {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.texto-formatado li {
+  margin-bottom: 4px;
+}
+
+.texto-formatado hr {
+  border: 0;
+  border-top: 1px solid var(--eixo);
+  margin: 10px 0;
+}
+
+.texto-formatado code {
+  background: color-mix(in srgb, var(--tinta) 10%, transparent);
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 0.92em;
 }
