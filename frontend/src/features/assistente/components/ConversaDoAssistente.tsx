@@ -1,5 +1,6 @@
 import { Mic, MicOff, Send, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { TextoFormatado } from "../../../shared/ui/TextoFormatado";
 import { mensagemDeErro } from "../../../shared/utils/mensagemDeErro";
 import { usePergunta } from "../hooks/useAssistente";
 import type { MensagemNoEcra } from "../types/assistente";
@@ -31,7 +32,11 @@ export function ConversaDoAssistente({ perguntasSugeridas }: Props) {
   const parar = useRef<(() => void) | null>(null);
   const microfone = reconhecimentoDisponivel();
 
-  useEffect(() => fim.current?.scrollIntoView({ behavior: "smooth", block: "end" }), [mensagens, pergunta.isPending]);
+  // Com chavetas: o React exige que um efeito não devolva nada além de uma função de limpeza, e `scrollIntoView`
+  // devolve um valor nalguns browsers. Sem isto, a página inteira ficava em branco.
+  useEffect(() => {
+    fim.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [mensagens, pergunta.isPending]);
   useEffect(() => () => pararDeFalar(), []);
 
   const enviar = (perguntaDoUtilizador: string) => {
@@ -85,12 +90,12 @@ export function ConversaDoAssistente({ perguntasSugeridas }: Props) {
         )}
         {mensagens.map((m) => (
           <div key={m.id} className={`balao ${m.papel}`}>
-            <div className="balao-texto">{m.texto}</div>
+            <div className="balao-texto">{m.papel === "assistente" ? <TextoFormatado texto={m.texto} /> : m.texto}</div>
             {m.resposta && (
               <div className="balao-meta">
                 <span className={`etiqueta ${m.resposta.modo}`}>{m.resposta.modo === "gemini" ? "Gemini" : "Modo de segurança"}</span>
-                {m.resposta.ferramentas_usadas.map((f, i) => (
-                  <span key={`${f}-${i}`} className="etiqueta">
+                {[...new Set(m.resposta.ferramentas_usadas)].map((f) => (
+                  <span key={f} className="etiqueta">
                     {ROTULO_DAS_FERRAMENTAS[f] ?? f}
                   </span>
                 ))}

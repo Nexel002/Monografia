@@ -1,6 +1,7 @@
 import { FileText, Volume2 } from "lucide-react";
 import { Cartao } from "../../../shared/ui/Cartao";
 import { EstadoDaConsulta } from "../../../shared/ui/EstadoDaConsulta";
+import { TextoFormatado } from "../../../shared/ui/TextoFormatado";
 import { mensagemDeErro } from "../../../shared/utils/mensagemDeErro";
 import { ConversaDoAssistente } from "../components/ConversaDoAssistente";
 import { useEstadoDoAssistente, useRelatorio } from "../hooks/useAssistente";
@@ -67,7 +68,9 @@ export function PaginaAssistente() {
             )}
             {relatorio.data && (
               <>
-                <div className="relatorio-texto">{relatorio.data.texto}</div>
+                <div className="relatorio-texto">
+                  <TextoFormatado texto={relatorio.data.texto} />
+                </div>
                 <div className="balao-meta" style={{ marginTop: 8 }}>
                   <span className={`etiqueta ${relatorio.data.modo}`}>{relatorio.data.modo === "gemini" ? "Gemini" : "Modo de segurança"}</span>
                   <button className="icone" onClick={() => void falar(relatorio.data.texto)} aria-label="Ouvir o relatório" title="Ouvir o relatório">

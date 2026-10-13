@@ -74,6 +74,13 @@ Teleportes (bloqueios) somados nas 8 sementes, tempo fixo → melhor configuraç
 - Rotas: `GET /api/assistente/estado`, `POST /api/assistente/perguntar`, `GET /api/assistente/relatorio`,
   `POST /api/assistente/voz` (503 quando não há voz de servidor).
 
+**Achados no browser (os testes automáticos não os apanhavam):**
+- O ecrã ficava **todo em branco**: o efeito que faz scroll para a última mensagem devolvia o resultado de
+  `scrollIntoView`, e o React exige que um efeito não devolva nada além de uma função de limpeza. Corrigido.
+- As respostas do Gemini vêm em markdown e apareciam com `###`, `**` e crases. Passaram a mostrar-se formatadas
+  por um analisador mínimo (`shared/utils/markdownSimples.ts`) que devolve estrutura de dados e não HTML, por
+  isso uma resposta do modelo nunca injecta HTML na página. A lista das ferramentas usadas deixou de repetir etiquetas.
+
 **Limitações:** os dados agregados dos resultados são enviados ao Gemini (Google) quando está configurado.
 O assistente só vê o que está na base de dados importada. «Horas de pico» são as da simulação, não do dia real.
 
