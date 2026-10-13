@@ -12,7 +12,7 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 **Fase 5 — Assistente, resultados e ensaio (dias 12–14)**
 
-- [ ] Resultados finais para a monografia: mais sementes e o cenário de hora normal (`--escala 0.5`) na tabela
+- [x] Resultados finais para a monografia: 5 configurações × 8 sementes × 3 cenários (ver Histórico)
 - [ ] Medir a precisão da contagem de veículos (depende de uma contagem manual — ver Pendências)
 - [x] Assistente com Gemini, texto e voz, e modo de segurança (ver Histórico)
 - [ ] Ligar a visão ao controlo na demo (a `ContagemPorVia` da câmara ao lado da da simulação)
@@ -23,6 +23,35 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 ---
 
 ## 1.1 Histórico de entregas
+
+### Resultados finais da comparação (13/10/2026)
+5 configurações × 8 sementes (42, 7, 13, 1–5) em 3 cenários: **120 execuções**, todas na base de dados
+(`python -m gestao_trafego.dados.importar`; tabelas em `dados/resultados/comparacao_x*_final.csv`). Espera média por
+veículo em segundos (média das sementes ± desvio-padrão entre sementes; variação face ao tempo fixo):
+
+| Configuração | Ponta + via cortada | Hora de ponta | Hora normal (½ tráfego) |
+|---|---|---|---|
+| Tempo fixo (como hoje) | 135,3 ± 30,5 | 126,7 ± 40,1 | 68,6 ± 1,5 |
+| Adaptativo local | 102,8 ± 26,2 (**−24 %**) | 80,0 ± 16,2 (**−37 %**) | 42,3 ± 1,9 (**−38 %**) |
+| Local + vias alternativas | 78,7 ± 10,6 (**−42 %**) | 68,0 ± 20,4 (**−46 %**) | 42,9 ± 0,8 (−37 %) |
+| Coordenado | 109,5 ± 36,6 (−19 %) | 80,0 ± 16,2 (−37 %) | 42,3 ± 1,9 (−38 %) |
+| Coordenado + vias | **76,1 ± 7,0 (−44 %)** | 68,0 ± 20,4 (−46 %) | 42,9 ± 0,8 (−37 %) |
+
+Teleportes (bloqueios) somados nas 8 sementes, tempo fixo → melhor configuração: 187 → 31 (ponta + via cortada),
+182 → 40 (hora de ponta), 0 → 0 (hora normal).
+
+**Leitura honesta (a que se deve defender):**
+- O controlo **adaptativo local** reduz a espera em 24 a 38 % nos três cenários, e é a principal fonte do ganho.
+- As **vias alternativas** acrescentam um ganho grande com tráfego pesado (de −24 % para −42 % com via cortada;
+  de −37 % para −46 % na hora de ponta) e **nenhum** na hora normal, onde não há congestionamento a evitar.
+- A **camada de coordenação não acrescenta nada medível**: sem incidente, «Coordenado» é idêntico ao «Local» (o
+  coordenador nunca chega a actuar: a ocupação das faixas de saída não passa do limiar); com via cortada fica
+  até pior sozinha (−19 % contra −24 %) e só aparece como ligeiramente melhor com as vias (−44 % contra −42 %),
+  dentro do ruído de 8 sementes. Não se deve dizer que a coordenação melhora o sistema; deve dizer-se que,
+  nesta rede e com estes cenários, o spillback que ela evita quase não ocorre.
+- A dispersão entre sementes é grande em hora de ponta (±16 a 40 s): as diferenças de poucos pontos
+  percentuais entre as variantes adaptativas não são conclusivas.
+- Tudo isto são **simulações com procura assumida** (sem planilha de campo) e uma rede de 13 semáforos.
 
 ### Assistente com Gemini, texto e voz (13/10/2026)
 `backend/gestao_trafego/assistente/` e ecrã **Assistente** do dashboard. Testes: 43 novos no backend e 6 no front-end.
