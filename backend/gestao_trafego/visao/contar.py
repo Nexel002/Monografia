@@ -22,6 +22,7 @@ from gestao_trafego.visao.anotar import desenhar
 from gestao_trafego.visao.contagem import ContadorDeLinha
 from gestao_trafego.visao.detector import seguir_veiculos
 from gestao_trafego.visao.fila import EstimadorDeFila, agregar_por_janela
+from gestao_trafego.visao.video import converter_para_h264
 
 RAIZ = Path(__file__).resolve().parents[3]
 PASTA_RESULTADOS = RAIZ / "dados" / "resultados"
@@ -68,7 +69,7 @@ def contar_video(
     filas: list[tuple[int, int]] = []
     saida.mkdir(parents=True, exist_ok=True)
     escritor = (
-        cv2.VideoWriter(str(saida / "anotado.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (largura, altura))
+        cv2.VideoWriter(str(saida / "anotado_bruto.mp4"), cv2.VideoWriter_fourcc(*"mp4v"), fps, (largura, altura))
         if guardar_video
         else None
     )
@@ -88,6 +89,10 @@ def contar_video(
         if escritor:
             escritor.release()
     decorrido = time.perf_counter() - inicio
+    if guardar_video:
+        # O OpenCV só escreve um formato que os browsers não reproduzem: converte-se para H.264 e apaga-se o bruto.
+        converter_para_h264(saida / "anotado_bruto.mp4", saida / "anotado.mp4")
+        (saida / "anotado_bruto.mp4").unlink()
 
     janelas = agregar_por_janela("via_principal", contador.passagens, filas, fps, processados / fps, janela_s)
     resumo = {
