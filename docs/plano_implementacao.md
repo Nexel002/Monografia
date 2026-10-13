@@ -12,21 +12,62 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 **Fase 4 — Previsão, dados e API (dias 9–11)**
 
-- [ ] Decidir onde corre o PostgreSQL (instalação local, Docker ou serviço gratuito na nuvem): não há
-      servidor nesta máquina; a monografia (3.9) compromete PostgreSQL
-- [ ] Previsão: gerar séries de ocupação por faixa a partir do SUMO e treinar um LSTM pequeno em CPU
-      (PyTorch já instalado) que prevê a fila dos minutos seguintes; comparar com a linha de base
-      «amanhã igual a hoje» (persistência) e registar o erro
-- [ ] Persistência: execuções, métricas por passo, decisões do coordenador e contagens da visão
-- [ ] FastAPI + WebSocket: estado ao vivo da simulação, comparação fixo vs inteligente, contagens da visão
-- [ ] Dashboard React: mapa/estado dos semáforos, filas, previsão contra real, KPIs, vídeo anotado
-- [ ] Testes da lógica de previsão e da API
+*4a/4b — feitas (ver Histórico):* PostgreSQL embebido, importação dos resultados, LSTM treinado e avaliado.
 
-**Como verificar:** *(a definir quando a API existir)*.
+*4c — API (por fazer):*
+- [ ] Refactor: extrair de `executar.py` uma `SessaoDeSimulacao` que avança passo a passo (hoje o ciclo
+      está dentro de uma função só), para a mesma lógica servir a corrida em lote e a simulação ao vivo
+- [ ] FastAPI: rotas de histórico (execuções, série, comparação por configuração, previsões, contagens da visão)
+- [ ] WebSocket: simulação ao vivo com **dois cenários lado a lado** (tempo fixo contra coordenado + vias),
+      mesma semente; envia posições dos veículos, estado dos semáforos e KPIs
+- [ ] Rota da geometria da rede (ruas e semáforos) e do vídeo anotado
+- [ ] Testes da API
+
+*4d — Dashboard React (por fazer):*
+- [ ] Vite + React + TypeScript; mapa ao vivo lado a lado, KPIs, gráficos de resultados e previsão
+      contra real, vídeo anotado com contagens; tema escuro de sala de controlo, a funcionar em ecrã grande
+
+**Como verificar:** `cd backend && uv run python -m gestao_trafego.dados.importar` e
+`uv run python -m gestao_trafego.previsao.treinar` (já existem); a API e o dashboard ficam por definir.
 
 ---
 
 ## 1.1 Histórico de entregas
+
+### Fase 4a/4b — Base de dados e previsão (13/10/2026)
+`dados/` (PostgreSQL) e `previsao/` (LSTM). Testes: 17 novos; total 70 (`uv run pytest`).
+
+- **PostgreSQL embebido** (`pgserver`, sem instalação nem administrador; dados em `dados/postgres/`, fora do
+  Git). Com `DATABASE_URL` definida usa-se um servidor próprio. Esquema em `dados/esquema.sql`: `execucao`,
+  `amostra`, `contagem_via`, `previsao`. `python -m gestao_trafego.dados.importar` importa as pastas de
+  `dados/resultados/` (idempotente; ignora os ensaios curtos `_limN`): 49 execuções e as janelas de contagem.
+- **Comparação por configuração** (`repositorio.comparar_configuracoes`): só usa as sementes comuns a todas
+  as configurações, senão se compararia o acaso das sementes.
+- **LSTM** (`previsao/`): janelas de 5 min de [parados, na rede, velocidade] → veículos parados daqui a 1, 3
+  e 5 min. Treino em 36 execuções e teste em 13, **divididas por semente** (as sementes 5 e 13 só no
+  teste) para não avaliar em tráfego já visto. `python -m gestao_trafego.previsao.treinar`.
+
+**Resultado (erro absoluto médio em veículos parados; fila média no teste 53):**
+
+| Horizonte | LSTM | Persistência | Melhoria |
+|---|---|---|---|
+| 60 s | 13,2 | 21,5 | +39 % |
+| 180 s | 17,1 | 18,9 | +10 % |
+| 300 s | 19,9 | 25,7 | +23 % |
+
+**Leitura honesta:** a melhoria vem sobretudo do **tempo fixo** (60 s: 11,1 contra 34,9; 300 s: 17,4 contra
+39,2), onde a fila segue o ciclo periódico dos semáforos e a persistência erra a fase. Sob controlo
+adaptativo o ganho é pequeno aos 60 s (≈15 %: local 15,4 contra 18,0; coordenado+vias 12,0 contra 16,1),
+quase nulo aos 180 s e **aos 300 s o LSTM não bate a persistência no controlo local** (23,3 contra 23,0).
+Apoia a H2 só de forma parcial e a curto prazo. Erro de 12 a 20 veículos sobre uma fila média de 53 é
+elevado: o alvo (parados na rede inteira, de 10 em 10 s) é ruidoso.
+
+**Desvios e limitações:**
+- O LSTM prevê a fila agregada da rede, não a de cada faixa: o `serie.csv` só guarda totais. Previsão por
+  faixa pediria registar mais na simulação.
+- Python do projecto fixado em **3.12** (`backend/.python-version`): o `pgserver` só tem *wheels* para
+  3.12 e o `uv` escolhia a 3.14.
+- Variável nova: `DATABASE_URL` (opcional; sem ela usa-se o PostgreSQL embebido). Em `backend/.env.example`.
 
 ### Fase 3 — Visão: contagem de veículos por vídeo (12/10/2026)
 Detecção e contagem de veículos em vídeo (`backend/gestao_trafego/visao/`): `contagem.py` (contagem por
@@ -268,10 +309,13 @@ Código, identificadores e mensagens em português.
 - [ ] Ligar a visão ao controlo na demo (a `ContagemPorVia` da câmara ao lado da da simulação)
 
 ### Fase 4 — Previsão, dados e API (dias 9–11)
-- [ ] Séries de contagens geradas pelo SUMO → LSTM pequeno (CPU) → previsão de filas
-- [ ] PostgreSQL: execuções, métricas por passo, decisões do coordenador
-- [ ] FastAPI + WebSocket: estado ao vivo, comparação fixo vs inteligente
-- [ ] Dashboard React: mapa/estado dos semáforos, filas, previsão vs real, KPIs, vídeo anotado
+- [x] PostgreSQL decidido e a funcionar (embebido, sem instalação)
+- [x] Persistência: execuções, séries, contagens da visão e previsões
+- [x] LSTM treinado e avaliado contra a linha de base de persistência
+- [ ] `SessaoDeSimulacao` (refactor) e simulação ao vivo
+- [ ] FastAPI + WebSocket
+- [ ] Dashboard React
+- [ ] Testes da API
 
 ### Fase 5 — Assistente, resultados e ensaio (dias 12–14)
 - [ ] Resultados e gráficos para a monografia (média, desvio-padrão, antes/depois — secção 3.10)
