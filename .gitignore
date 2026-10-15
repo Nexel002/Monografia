@@ -8,6 +8,7 @@ node_modules/
 
 # Dados pesados e gerados (reproduzíveis a partir de scripts) — não versionar
 dados/videos/*
+dados/videos_webm/*
 dados/mapas/*.osm*
 dados/resultados/*
 !dados/**/.gitkeep
@@ -17,3 +18,8 @@ dados/resultados/*
 !.env.example
 dados/postgres/
 dados/modelos/
+
+# Gerados pelo iniciar_demo: PIDs dos processos e registos
+.demo/
+logs/
+frontend/dist/

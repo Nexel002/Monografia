@@ -105,10 +105,10 @@ def test_lista_os_videos_originais(cliente):
     resposta = cliente.get("/api/visao/videos")
 
     assert resposta.status_code == 200
-    assert all(set(v) == {"nome", "tamanho_mb"} and v["nome"].endswith(".mp4") for v in resposta.json())
+    assert all(set(v) == {"nome", "tamanho_mb"} and v["nome"].endswith(".webm") for v in resposta.json())
 
 
-@pytest.mark.parametrize("nome", ["nao_existe.mp4", "..%2F..%2Fsegredo.mp4", "video.avi", "a b.mp4"])
+@pytest.mark.parametrize("nome", ["nao_existe.webm", "..%2F..%2Fsegredo.webm", "video.mp4", "a b.webm"])
 def test_video_original_rejeita_nomes_invalidos_ou_inexistentes(cliente, nome):
     assert cliente.get(f"/api/visao/videos/{nome}").status_code == 404
 
@@ -116,8 +116,8 @@ def test_video_original_rejeita_nomes_invalidos_ou_inexistentes(cliente, nome):
 @pytest.mark.parametrize(
     "consulta, esperado",
     [
-        ("video=nao_existe.mp4", "nao_existe.mp4"),
-        ("video=../../x.mp4", "x.mp4"),
+        ("video=nao_existe.webm", "nao_existe.webm"),
+        ("video=../../x.webm", "x.webm"),
     ],
 )
 def test_websocket_da_visao_rejeita_video_invalido(cliente, consulta, esperado):

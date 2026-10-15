@@ -7,6 +7,7 @@ dependencies = [
     "fastapi>=0.143.0",
     "httpx>=0.28.1",
     "imageio-ffmpeg>=0.6.0",
+    "lap>=0.5.13",
     "opencv-python>=5.0.0.93",
     "pgserver>=0.1.4",
     "psycopg[binary]>=3.3.6",

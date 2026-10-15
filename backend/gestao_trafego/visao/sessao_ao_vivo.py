@@ -19,6 +19,7 @@ import cv2
 from gestao_trafego.visao.analisador import Analisador
 from gestao_trafego.visao.contagem import ContadorDeLinha, Deteccao
 from gestao_trafego.visao.detector import SeguidorDeVeiculos
+from gestao_trafego.visao.video import exigir_webm
 
 # Largura a que se analisa o vídeo (ver `ao_vivo.py`): acima disto o detector perde análises por segundo.
 LARGURA_DE_TRABALHO = 960
@@ -58,7 +59,7 @@ class SessaoDeVisaoAoVivo:
 
     def abrir(self) -> dict:
         """Abre o vídeo, carrega e aquece o modelo (lento na primeira vez) e devolve a informação para o cliente."""
-        captura = cv2.VideoCapture(str(self._video))
+        captura = cv2.VideoCapture(str(exigir_webm(self._video)))
         largura = int(captura.get(cv2.CAP_PROP_FRAME_WIDTH))
         altura = int(captura.get(cv2.CAP_PROP_FRAME_HEIGHT))
         if not captura.isOpened() or largura <= 0 or altura <= 0:  # o OpenCV 5 devolve -1 (não 0) quando o ficheiro não abre
