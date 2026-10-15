@@ -24,6 +24,24 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 
 ## 1.1 Histórico de entregas
 
+### Vídeos em WebM (15/10/2026)
+Todo o vídeo que o backend lê é primeiro convertido para **WebM** (VP9, sem áudio, no máximo 960 px de largura) e
+guardado em `dados/videos_webm/` (fora do Git). `dados/videos/` passou a ser só a pasta de entrada, em qualquer formato.
+- `visao/video.py`: `garantir_webm(origem)` converte se ainda não existir (ou se a origem for mais recente), escreve
+  para um ficheiro `.parcial` e só no fim renomeia (uma conversão interrompida não deixa um WebM truncado);
+  `exigir_webm` faz o núcleo (`contar_video`, `executar_ao_vivo`, `SessaoDeVisaoAoVivo`) recusar tudo o que não for WebM.
+  `python -m gestao_trafego.visao.video --converter-tudo` converte a pasta toda; `contar` converte sozinho à entrada.
+- API: `/api/visao/videos` lista e serve só `videos_webm/*.webm` (`video/webm`); `/ws/visao?video=<nome>.webm`.
+- Medido (15/10/2026): autoestrada 1080p 42,9 → **8,8 MB**; «barulho de carro» 640×360 62,4 → **55,9 MB**. Os fotogramas
+  mantêm-se (1800 e 19 969). Com qualidade constante (crf) o segundo crescia para 100 MB (já vinha muito comprimido): por isso
+  o débito de origem × 0,8 serve de tecto. **Conclusão honesta: o ganho depende do vídeo**; num vídeo já leve é pequeno.
+- Efeito no processamento: leitura igual (≈106 fps WebM contra 108 fps MP4); o gargalo continua a ser o YOLO.
+  Contagem dos primeiros 30 s da autoestrada: **27 no WebM contra 26 no MP4** (±1, dentro do erro da contagem por
+  linha); o processamento offline correu a 3,3 fps contra 1,7 fps (imagem de 960 px em vez de 1080p; as duas corridas não
+  foram feitas em condições idênticas, a comparação é indicativa).
+- Corrigido: `contar_video` chamava `isOpened()` depois do `release()` e recusava sempre o vídeo; e o pacote `lap`
+  (ByteTrack) estava sem `__init__.py` no ambiente (reinstalado com `uv sync --reinstall-package lap`).
+
 ### Resultados finais da comparação (13/10/2026)
 5 configurações × 8 sementes (42, 7, 13, 1–5) em 3 cenários: **120 execuções**, todas na base de dados
 (`python -m gestao_trafego.dados.importar`; tabelas em `dados/resultados/comparacao_x*_final.csv`). Espera média por
@@ -200,9 +218,9 @@ linha, pura), `detector.py` (YOLOv8n + ByteTrack do `ultralytics`), `fila.py` (f
 janela em `ContagemPorVia`), `extrapolar.py` e `ao_vivo.py` (janela à velocidade real), `anotar.py`,
 `contar.py` (comando). Testes: 25 novos (`uv run pytest`).
 
-- Offline (todos os fotogramas, vídeo anotado): `uv run python -m gestao_trafego.visao.contar --video ../dados/videos/<ficheiro>.mp4`
+- Offline (todos os fotogramas, vídeo anotado): `uv run python -m gestao_trafego.visao.contar --video ../dados/videos/<ficheiro>.mp4` (converte para WebM à entrada)
 - Ao vivo (janela, `q` sai, espaço pausa): o mesmo comando com `--ao-vivo`
-- Vídeo: `transito_autoestrada_pexels_2103099.mp4` (Pexels, autoestrada, 60 s, 1080p, 30 fps) em `dados/videos/` (fora do Git)
+- Vídeo: `transito_autoestrada_pexels_2103099.mp4` (Pexels, autoestrada, 60 s, 1080p, 30 fps) em `dados/videos/` (fora do Git; o backend lê a versão WebM em `dados/videos_webm/`)
 
 **Origem e licença:** a lógica de contagem foi escrita de raiz. O repositório indicado
 (`anselmonhamage/automatic-number-plate-recognition-python-yolov8`, cópia de um tutorial de ANPR) **não

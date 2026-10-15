@@ -1,6 +1,6 @@
 """Visão ao vivo por WebSocket: o browser reproduz o vídeo e este servidor envia-lhe o que o algoritmo vê.
 
-O cliente liga-se a `/ws/visao?video=<ficheiro>.mp4` e recebe `a_preparar`, `pronto` (com a resolução e a
+O cliente liga-se a `/ws/visao?video=<ficheiro>.webm` e recebe `a_preparar`, `pronto` (com a resolução e a
 linha de contagem), várias vezes por segundo `deteccoes`, e por fim `fim` (com o resumo) ou `erro`.
 
 Comandos do cliente (JSON): {"accao": "iniciar", "t": 0}, {"accao": "sincronizar", "t": <segundo do vídeo>},

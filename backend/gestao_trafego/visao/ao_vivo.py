@@ -21,6 +21,7 @@ from gestao_trafego.visao.analisador import Analisador
 from gestao_trafego.visao.contagem import ContadorDeLinha
 from gestao_trafego.visao.detector import SeguidorDeVeiculos
 from gestao_trafego.visao.extrapolar import ExtrapoladorDeCaixas
+from gestao_trafego.visao.video import exigir_webm
 
 JANELA = "Contagem de veículos (ao vivo)"
 # Largura a que o vídeo é reduzido antes de ser analisado e desenhado. A 1080p, só desenhar e mostrar
@@ -37,7 +38,7 @@ def executar_ao_vivo(
     tamanho_imagem: int = 480,
     max_segundos: float | None = None,
 ) -> dict:
-    captura = cv2.VideoCapture(str(video))
+    captura = cv2.VideoCapture(str(exigir_webm(video)))
     largura = int(captura.get(cv2.CAP_PROP_FRAME_WIDTH))
     altura = int(captura.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = captura.get(cv2.CAP_PROP_FPS) or 30.0

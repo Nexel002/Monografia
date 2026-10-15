@@ -111,7 +111,7 @@ export function VisaoAoVivo() {
             Vídeo
             <select value={nomeDoVideo ?? ""} onChange={(e) => setEscolhido(e.target.value)} disabled={ocupado || !videos.data?.length}>
               {(videos.data ?? []).map((v) => (
-                <option key={v.nome} value={v.nome}>{v.nome.replace(".mp4", "")}</option>
+                <option key={v.nome} value={v.nome}>{v.nome.replace(".webm", "")}</option>
               ))}
             </select>
           </label>

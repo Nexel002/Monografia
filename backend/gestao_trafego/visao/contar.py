@@ -22,7 +22,7 @@ from gestao_trafego.visao.anotar import desenhar
 from gestao_trafego.visao.contagem import ContadorDeLinha
 from gestao_trafego.visao.detector import seguir_veiculos
 from gestao_trafego.visao.fila import EstimadorDeFila, agregar_por_janela
-from gestao_trafego.visao.video import converter_para_h264
+from gestao_trafego.visao.video import converter_para_h264, exigir_webm, garantir_webm
 
 RAIZ = Path(__file__).resolve().parents[3]
 PASTA_RESULTADOS = RAIZ / "dados" / "resultados"
@@ -52,13 +52,14 @@ def contar_video(
     janela_s: float = 10.0,
     zona: tuple[float, float, float, float] | None = None,
 ) -> dict:
-    captura = cv2.VideoCapture(str(video))
+    captura = cv2.VideoCapture(str(exigir_webm(video)))
     largura = int(captura.get(cv2.CAP_PROP_FRAME_WIDTH))
     altura = int(captura.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = captura.get(cv2.CAP_PROP_FPS) or 30.0
     total_fotogramas = int(captura.get(cv2.CAP_PROP_FRAME_COUNT))
+    abriu = captura.isOpened()  # tem de se ver antes do release(): depois dele é sempre False
     captura.release()
-    if not captura.isOpened() or largura <= 0 or altura <= 0:  # o OpenCV 5 devolve -1 (não 0) quando o ficheiro não abre
+    if not abriu or largura <= 0 or altura <= 0:  # o OpenCV 5 devolve -1 (não 0) quando o ficheiro não abre
         raise FileNotFoundError(f"Não foi possível abrir o vídeo: {video}")
 
     contador = ContadorDeLinha(
@@ -139,6 +140,8 @@ def main() -> None:
     parser.add_argument("--ao-vivo", action="store_true", help="janela com o vídeo à velocidade real (q sai, espaço pausa)")
     parser.add_argument("--imgsz", type=int, default=None, help="tamanho da imagem para o YOLO (960 offline, 480 ao vivo)")
     argumentos = parser.parse_args()
+    # Qualquer formato entra; o que o algoritmo lê é sempre o WebM de dados/videos_webm/ (convertido aqui se for preciso)
+    argumentos.video = garantir_webm(argumentos.video)
     saida = argumentos.saida or PASTA_RESULTADOS / f"visao_{argumentos.video.stem}"
     max_fotogramas = argumentos.max_fotogramas
     if argumentos.segundos and not argumentos.ao_vivo:

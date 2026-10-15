@@ -7,6 +7,7 @@ import pytest
 
 from gestao_trafego.visao.contagem import Caixa, Deteccao
 from gestao_trafego.visao.sessao_ao_vivo import SessaoDeVisaoAoVivo
+from gestao_trafego.visao.video import garantir_webm
 
 LARGURA, ALTURA, FPS, FOTOGRAMAS = 160, 90, 30, 60  # 2 s de vídeo
 
@@ -18,7 +19,7 @@ def video(tmp_path_factory) -> Path:
     for i in range(FOTOGRAMAS):
         escritor.write(np.full((ALTURA, LARGURA, 3), i * 4 % 255, dtype=np.uint8))
     escritor.release()
-    return caminho
+    return garantir_webm(caminho, caminho.parent / "webm")  # o backend só lê WebM
 
 
 class SeguidorFalso:
@@ -109,7 +110,7 @@ def test_limite_de_segundos_termina_o_vídeo_mais_cedo(video):
 
 def test_video_inexistente_falha_alto(tmp_path):
     with pytest.raises(FileNotFoundError):
-        SessaoDeVisaoAoVivo(tmp_path / "nao_existe.mp4", lambda m: None, seguidor=SeguidorFalso()).abrir()
+        SessaoDeVisaoAoVivo(tmp_path / "nao_existe.webm", lambda m: None, seguidor=SeguidorFalso()).abrir()
 
 
 def test_erro_do_analisador_chega_ao_cliente(video):

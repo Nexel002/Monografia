@@ -8,21 +8,21 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 
 from gestao_trafego.comum.configuracao import RAIZ
+from gestao_trafego.visao.video import PASTA_WEBM
 
 router = APIRouter(prefix="/api/visao")
 
 PASTA_RESULTADOS = RAIZ / "dados" / "resultados"
-PASTA_VIDEOS = RAIZ / "dados" / "videos"
 _NOME_VALIDO = re.compile(r"^visao_[A-Za-z0-9_\-]+$")
-_VIDEO_VALIDO = re.compile(r"^[A-Za-z0-9_\-]+\.mp4$")
+_VIDEO_VALIDO = re.compile(r"^[A-Za-z0-9_\-]+\.webm$")
 
 
 def resolver_video(nome: str) -> Path | None:
-    """Caminho de um vídeo de `dados/videos/`, ou None. O nome vem do cliente: só se aceita um nome simples
+    """Caminho de um WebM de `dados/videos_webm/` (os únicos que o backend lê), ou None. O nome vem do cliente: só se aceita um nome simples
     de ficheiro que exista nessa pasta, nunca um caminho."""
     if not _VIDEO_VALIDO.match(nome):
         return None
-    ficheiro = PASTA_VIDEOS / nome
+    ficheiro = PASTA_WEBM / nome
     return ficheiro if ficheiro.is_file() else None
 
 
@@ -35,10 +35,10 @@ def _pasta(nome: str) -> Path:
 
 @router.get("/videos")
 def listar_videos() -> list[dict]:
-    """Os vídeos originais, para o modo ao vivo (o algoritmo corre sobre eles enquanto passam no browser)."""
+    """Os vídeos (já convertidos para WebM), para o modo ao vivo (o algoritmo corre sobre eles enquanto passam no browser)."""
     return [
         {"nome": f.name, "tamanho_mb": round(f.stat().st_size / 1_000_000, 1)}
-        for f in sorted(PASTA_VIDEOS.glob("*.mp4"))
+        for f in sorted(PASTA_WEBM.glob("*.webm"))
     ]
 
 
@@ -47,7 +47,7 @@ def video_original(nome: str) -> FileResponse:
     ficheiro = resolver_video(nome)
     if ficheiro is None:
         raise HTTPException(404, f"Não existe o vídeo {nome!r}.")
-    return FileResponse(ficheiro, media_type="video/mp4")
+    return FileResponse(ficheiro, media_type="video/webm")
 
 
 @router.get("")
