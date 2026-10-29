@@ -23,3 +23,4 @@ dados/modelos/
 .demo/
 logs/
 frontend/dist/
+frontend/*.tsbuildinfo
