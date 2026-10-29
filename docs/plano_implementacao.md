@@ -16,7 +16,8 @@ e demonstrável na defesa, que prove que a ideia é viável — não um sistema 
 - [ ] Medir a precisão da contagem de veículos (depende de uma contagem manual — ver Pendências)
 - [x] Assistente com Gemini, texto e voz, e modo de segurança (ver Histórico)
 - [ ] Ligar a visão ao controlo na demo (a `ContagemPorVia` da câmara ao lado da da simulação)
-- [ ] Ensaio completo da demonstração e guião de defesa
+- [ ] Ensaio completo da demonstração e guião de defesa (`scripts/iniciar_demo.ps1` e `parar_demo.ps1` escritos mas **ainda não validados**)
+- [ ] Testes estatísticos exactos (Wilcoxon + Holm) sobre as 120 execuções: código e testes feitos (`gestao_trafego/comum/estatistica.py`, `backend/scripts/testes_estatisticos.py`); falta correr e registar os resultados e a conclusão de H3 no Histórico
 
 **Como verificar:** ver o `README.md` na raiz (arranque do backend e do dashboard).
 
@@ -495,6 +496,14 @@ que o YOLO nano em CPU atinge taxa suficiente para a demo.
   alimentar o SUMO.
 - **Calibração:** sem a planilha de Agosto, os cenários não estão calibrados com dados reais. A monografia
   (3.3.1, 3.4) afirma que estão — trazer a planilha antes da defesa.
+- **Base de dados embebida (PostgreSQL via `pgserver`):** se o PC for desligado à força, o arranque seguinte faz uma
+  recuperação que verifica todos os ficheiros e, neste PC, demora mais de 20 s; o `pgserver` desiste aos 10 s
+  («Timeout starting server») e deixa processos `postgres` presos (visto em 16 e 29/10/2026). Antes da defesa:
+  fechar sempre o backend com Ctrl+C e **arrancar o backend uma vez com antecedência**. Se acontecer: terminar os
+  processos `postgres.exe` deste projecto, apagar `dados/postgres/postmaster.pid` e arrancar com
+  `pg_ctl -D dados/postgres -w -t 240 start` com o **log fora de `dados/postgres/`** (o `-l` dentro da pasta de dados
+  provoca «sharing violation» durante a recuperação). Por resolver no código: `ligacao.py` devia arrancar o servidor
+  com um tempo de espera maior.
 - **Rede na defesa:** o assistente LLM precisa de internet; manter modo de segurança.
 - **Prazo:** 2 semanas. Cortes por ordem: assistente LLM → vias alternativas → LSTM. O núcleo
   (simulação, controlo em duas camadas, visão, dashboard) não se corta.
