@@ -26,5 +26,16 @@ npm install
 npm run dev                                          # http://localhost:5174
 ```
 
+**Vídeos da visão computacional:** põe o vídeo (qualquer formato) em `dados/videos/` e converte-o para WebM, que é
+o único formato que o backend lê (fica em `dados/videos_webm/`):
+
+```
+cd backend
+uv run python -m gestao_trafego.visao.video --converter-tudo
+```
+
+**Se o backend falhar com «Timeout starting server»:** o PostgreSQL embebido ficou mal fechado (PC desligado à força) e a
+recuperação demora mais do que os 10 s que o `pgserver` espera. Ver «Base de dados embebida» em `docs/plano_implementacao.md`, secção 6.
+
 O dashboard tem quatro ecrãs: **Simulação ao vivo** (dois cenários lado a lado), **Resultados**,
 **Previsão** e **Visão computacional**. Testes: `uv run pytest` (backend) e `npm test` (frontend).
